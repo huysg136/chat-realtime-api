@@ -1,4 +1,3 @@
-// server.js hoặc upload.js
 import express from "express";
 import multer from "multer";
 import { PutObjectCommand } from "@aws-sdk/client-s3";
@@ -10,9 +9,13 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT || 5000;
 
+// Giới hạn file: 10 KB
+const MAX_SIZE = 10 * 1024; // 10 KB = 10 * 1024 bytes
+
+// Cấu hình Multer với bộ nhớ tạm
 const upload = multer({ 
   storage: multer.memoryStorage(),
-  limits: { fileSize: 0.001 * 1024 * 1024 } // 1MB
+  limits: { fileSize: MAX_SIZE } 
 });
 
 // Route upload file
@@ -20,6 +23,11 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const file = req.file;
     if (!file) return res.status(400).json({ error: "No file uploaded" });
+
+    // Kiểm tra file size thủ công (an toàn hơn)
+    if (file.size > MAX_SIZE) {
+      return res.status(400).json({ error: "File too large. Max 10 KB allowed." });
+    }
 
     const uploadParams = {
       Bucket: process.env.R2_BUCKET_NAME,
@@ -35,17 +43,17 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 
   } catch (error) {
     if (error.code === "LIMIT_FILE_SIZE") {
-      return res.status(400).json({ error: "File too large. Max 10MB allowed." });
+      return res.status(400).json({ error: "File too large. Max 10 KB allowed." });
     }
-
     console.error(error);
     res.status(500).json({ error: "Upload failed" });
   }
 });
 
+// Middleware xử lý lỗi Multer
 app.use((err, req, res, next) => {
   if (err.code === "LIMIT_FILE_SIZE") {
-    return res.status(400).json({ error: "File too large. Max 10MB allowed." });
+    return res.status(400).json({ error: "File too large. Max 10 KB allowed." });
   }
   next(err);
 });
