@@ -63,29 +63,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-app.get("/presigned-url", async (req, res) => {
-  try {
-    const { filename, contentType } = req.query;
-    if (!filename || !contentType)
-      return res.status(400).json({ error: "Missing filename or contentType" });
-
-    const key = `${Date.now()}-${filename}`;
-    const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-      ContentType: contentType,
-    });
-
-    const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 3600 }); // 1h
-    const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
-
-    res.json({ uploadUrl, publicUrl });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Failed to generate presigned URL" });
-  }
-});
-
 // --- SOCKET.IO CHAT ---
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
