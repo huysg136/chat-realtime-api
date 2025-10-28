@@ -7,7 +7,6 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import crypto from "crypto";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 dotenv.config();
 
@@ -20,7 +19,12 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ storage: multer.memoryStorage() });
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB limit to handle large videos
+  },
+});
 
 // --- CONFIG CLOUDFLARE R2 (AWS SDK v3) ---
 const r2 = new S3Client({
@@ -52,6 +56,9 @@ app.post("/upload", upload.single("file"), async (req, res) => {
     res.json({ url: fileUrl });
   } catch (err) {
     console.error(err);
+    if (err.code === "LIMIT_FILE_SIZE") {
+      return res.status(413).json({ error: "File too large" });
+    }
     res.status(500).json({ error: "Upload failed" });
   }
 });
