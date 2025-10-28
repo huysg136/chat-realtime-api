@@ -5,6 +5,9 @@ import { Server } from "socket.io";
 import multer from "multer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import crypto from "crypto";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { PutObjectCommand } from "@aws-sdk/client-s3";
 
 dotenv.config();
 
@@ -50,6 +53,29 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+app.get("/presigned-url", async (req, res) => {
+  try {
+    const { filename, contentType } = req.query;
+    if (!filename || !contentType)
+      return res.status(400).json({ error: "Missing filename or contentType" });
+
+    const key = `${Date.now()}-${filename}`;
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      ContentType: contentType,
+    });
+
+    const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 3600 }); // 1h
+    const publicUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
+
+    res.json({ uploadUrl, publicUrl });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to generate presigned URL" });
   }
 });
 
