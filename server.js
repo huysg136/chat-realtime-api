@@ -69,14 +69,16 @@ app.post("/api/ask-gemini", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateText?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
+          prompt: {
+            text: prompt
+          },
           temperature: 0.7,
-          candidate_count: 1
+          candidateCount: 1
         }),
       }
     );
@@ -85,7 +87,8 @@ app.post("/api/ask-gemini", async (req, res) => {
 
     if (data.error) return res.status(400).json({ error: data.error.message });
 
-    const answer = data.candidates?.[0]?.content?.[0]?.text || "Bot không hiểu 🫠";
+    // Lấy câu trả lời đầu tiên
+    const answer = data.candidates?.[0]?.output || "Bot không hiểu 🫠";
     res.json({ answer });
 
   } catch (err) {
@@ -93,7 +96,6 @@ app.post("/api/ask-gemini", async (req, res) => {
     res.status(500).json({ error: "Bot error" });
   }
 });
-
 
 // --- SOCKET.IO CHAT ---
 io.on("connection", (socket) => {
