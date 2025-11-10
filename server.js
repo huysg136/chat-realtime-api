@@ -70,29 +70,34 @@ app.post("/api/ask-gemini", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateMessage?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: [
+          contents: [
             {
-              content: [
-                { type: "text", text: prompt }
+              parts: [
+                { text: prompt }
               ]
             }
           ],
-          temperature: 0.7,
-          candidate_count: 1
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 1000,
+          }
         }),
       }
     );
 
     const data = await response.json();
 
-    if (data.error) return res.status(400).json({ error: data.error.message });
+    if (data.error) {
+      console.error("Gemini API error:", data.error);
+      return res.status(400).json({ error: data.error.message });
+    }
 
-    const answer = data.candidates?.[0]?.content?.[0]?.text || "Bot không hiểu 🫠";
+    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "Bot không hiểu 🫠";
     res.json({ answer });
 
   } catch (err) {
@@ -100,8 +105,6 @@ app.post("/api/ask-gemini", async (req, res) => {
     res.status(500).json({ error: "Bot error" });
   }
 });
-
-
 
 // --- Socket.IO chat ---
 io.on("connection", (socket) => {
