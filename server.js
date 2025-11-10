@@ -66,19 +66,22 @@ const geminiClient = new TextServiceClient({ authClient });
 
 app.post("/api/ask-gemini", async (req, res) => {
   const { prompt } = req.body;
+  
+  console.log("📥 Request:", prompt);
+  
   if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
   const API_KEY = process.env.GEMINI_API_KEY;
   
   try {
+    // ✅ ĐỔI MODEL SANG gemini-1.5-flash
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{
-            role: "user",
             parts: [{ text: prompt }]
           }]
         })
@@ -90,20 +93,22 @@ app.post("/api/ask-gemini", async (req, res) => {
     console.log("📩 Gemini Response:", JSON.stringify(data, null, 2));
 
     if (data.error) {
+      console.error("❌ API Error:", data.error);
       return res.status(400).json({ error: data.error.message });
     }
 
     const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!answer) {
-      console.error("No answer in response:", data);
+      console.error("⚠️ No answer");
       return res.status(500).json({ error: "No response from Gemini" });
     }
 
+    console.log("✅ Answer:", answer);
     res.json({ answer });
 
   } catch (err) {
-    console.error("❌ Gemini Error:", err);
+    console.error("❌ Error:", err);
     res.status(500).json({ error: err.message });
   }
 });
