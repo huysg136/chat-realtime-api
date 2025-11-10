@@ -65,38 +65,41 @@ const authClient = new GoogleAuth().fromAPIKey(process.env.GEMINI_API_KEY);
 const geminiClient = new TextServiceClient({ authClient });
 
 app.post("/api/ask-gemini", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+
   try {
-    const { prompt } = req.body;
-    if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-      return res.status(400).json({ error: "Missing prompt" });
-    }
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateText?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: [
+            {
+              content: [
+                { type: "text", text: prompt }
+              ]
+            }
+          ],
+          temperature: 0.7,
+          candidate_count: 1
+        }),
+      }
+    );
 
-    const modelName = process.env.GEMINI_MODEL || "models/gemini-1.5-flash";
+    const data = await response.json();
+    if (data.error) return res.status(400).json({ error: data.error.message });
 
-    const [response] = await geminiClient.generateText({
-      model: modelName,
-      prompt: { text: prompt },
-      temperature: 0.7,
-      candidateCount: 1,
-    });
+    const answer = data.candidates?.[0]?.content?.[0]?.text || "Bot không hiểu 🫠";
+    res.json({ answer });
 
-    let answer = "";
-    if (response?.candidates?.length) {
-      const c = response.candidates[0];
-      answer =
-        c.output ||
-        (c.content?.map((p) => (p.text ? p.text : (p.parts?.map(pt => pt.text).join("") || ""))).join("") || "") ||
-        "Bot không hiểu 🫠";
-    } else {
-      answer = "Bot không hiểu 🫠";
-    }
-
-    res.json({ answer: answer.toString() });
   } catch (err) {
-    console.error("Gemini API error:", err?.message || err);
+    console.error("Gemini API error:", err);
     res.status(500).json({ error: "Bot error" });
   }
 });
+
 
 // --- Socket.IO chat ---
 io.on("connection", (socket) => {
