@@ -79,7 +79,9 @@ app.post("/api/ask-gemini", async (req, res) => {
             messages: [
               {
                 author: "user",
-                text: prompt
+                content: [
+                  { type: "text", text: prompt }
+                ]
               }
             ]
           },
