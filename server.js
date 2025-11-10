@@ -76,10 +76,12 @@ app.post("/api/ask-gemini", async (req, res) => {
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          maxOutputTokens: 200
+        })
       }
     );
-
 
     const data = await response.json();
     
