@@ -70,7 +70,7 @@ app.post("/api/ask-gemini", async (req, res) => {
 
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateText?key=${process.env.GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateMessage?key=${process.env.GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -89,6 +89,7 @@ app.post("/api/ask-gemini", async (req, res) => {
     );
 
     const data = await response.json();
+
     if (data.error) return res.status(400).json({ error: data.error.message });
 
     const answer = data.candidates?.[0]?.content?.[0]?.text || "Bot không hiểu 🫠";
@@ -99,6 +100,7 @@ app.post("/api/ask-gemini", async (req, res) => {
     res.status(500).json({ error: "Bot error" });
   }
 });
+
 
 
 // --- Socket.IO chat ---
