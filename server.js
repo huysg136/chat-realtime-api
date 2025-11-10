@@ -109,6 +109,23 @@ app.post("/api/ask-gemini", async (req, res) => {
   }
 });
 
+app.get("/api/list-models", async (req, res) => {
+  const API_KEY = process.env.GEMINI_API_KEY;
+  
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${API_KEY}`
+    );
+    
+    const data = await response.json();
+    console.log("Available models:", JSON.stringify(data, null, 2));
+    res.json(data);
+  } catch (err) {
+    console.error("Error listing models:", err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- Socket.IO chat ---
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
