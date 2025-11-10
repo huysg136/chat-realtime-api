@@ -80,7 +80,7 @@ app.post("/api/ask-gemini", async (req, res) => {
               {
                 author: "user",
                 content: [
-                  { type: "text", text: prompt }
+                  { type: "text", text: prompt } 
                 ]
               }
             ]
