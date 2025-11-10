@@ -63,55 +63,39 @@ app.post("/upload", upload.single("file"), async (req, res) => {
 // --- Gemini Bot route ---
 app.post("/api/ask-gemini", async (req, res) => {
   const { prompt } = req.body;
-  
-  console.log("📥 Prompt:", prompt);
-  
+
   if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
   const API_KEY = process.env.GEMINI_API_KEY;
-  
+
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          // Phần text input
-          contents: [{ parts: [{ text: prompt }] }],
-
-          // Tham số điều khiển output
-          temperature: 0.7,
-          topP: 0.95,
-          topK: 40,
-          candidateCount: 1,
-          maxOutputTokens: 200  
+          contents: [{ parts: [{ text: prompt }] }]
         })
       }
     );
 
-
     const data = await response.json();
-    
-    console.log("📩 Response:", JSON.stringify(data, null, 2));
 
     if (data.error) {
-      console.error("❌ Error:", data.error);
       return res.status(400).json({ error: data.error.message });
     }
 
-    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text;
-    
-    if (!answer) {
-      console.error("⚠️ No answer");
-      return res.status(500).json({ error: "No response from Gemini" });
-    }
+    const answer = data.candidates?.[0]?.content?.parts
+      ?.map(p => p.text)
+      .join("\n");
 
-    console.log("✅ Answer:", answer);
+    if (!answer) return res.status(500).json({ error: "No response from Gemini" });
+
     res.json({ answer });
 
   } catch (err) {
-    console.error("❌ Error:", err);
+    console.error("❌ Error calling Gemini:", err);
     res.status(500).json({ error: err.message });
   }
 });
