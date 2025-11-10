@@ -3,8 +3,9 @@ import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
 import multer from "multer";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import fetch from "node-fetch";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -62,27 +63,33 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// --- ROUTE PRESIGNED URL ---
-app.get("/presigned-url", async (req, res) => {
+app.post("/api/ask-gemini", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+
   try {
-    const { filename, contentType } = req.query;
-    if (!filename || !contentType) {
-      return res.status(400).json({ error: "Missing filename or contentType query parameters" });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${process.env.GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(400).json({ error: data.error.message });
     }
 
-    const key = `${Date.now()}-${filename}`;
-    const command = new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME,
-      Key: key,
-      ContentType: contentType,
-    });
-
-    const url = await getSignedUrl(r2, command, { expiresIn: 300 });
-
-    res.json({ url, key });
+    const answer = data.candidates?.[0]?.content?.parts?.[0]?.text || "Bot không hiểu 🫠";
+    res.json({ answer });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Failed to generate presigned URL" });
+    console.error("Gemini API error:", err);
+    res.status(500).json({ error: "Bot error" });
   }
 });
 
