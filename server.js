@@ -75,9 +75,16 @@ app.post("/api/ask-gemini", async (req, res) => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: [
-            { content: [ { type: "text", text: prompt } ] }
-          ],
+          prompt: {
+            messages: [
+              {
+                author: "user",
+                content: [
+                  { type: "text", text: prompt }
+                ]
+              }
+            ]
+          },
           temperature: 0.7,
           candidate_count: 1
         })
@@ -85,13 +92,17 @@ app.post("/api/ask-gemini", async (req, res) => {
     );
 
     const data = await response.json();
-    if (data.error) return res.status(400).json({ error: data.error.message });
+
+    if (data.error) {
+      console.error("Gemini API returned error:", data.error);
+      return res.status(400).json({ error: data.error.message });
+    }
 
     const answer = data.candidates?.[0]?.content?.[0]?.text || "Bot không hiểu 🫠";
     res.json({ answer });
 
   } catch (err) {
-    console.error("Gemini API error:", err);
+    console.error("Gemini API request failed:", err);
     res.status(500).json({ error: "Bot error" });
   }
 });
