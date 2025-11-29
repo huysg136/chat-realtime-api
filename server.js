@@ -5,6 +5,7 @@ import { Server } from "socket.io";
 import multer from "multer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
@@ -17,13 +18,88 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
-// --- Multer setup ---
+app.post("/api/stringee/create-room", async (req, res) => {
+  try {
+    const { roomName } = req.body;
+    const ACCESS_TOKEN = req.headers["x-access-token"];
+    if (!ACCESS_TOKEN) {
+      return res.status(400).json({ error: "Missing X-ACCESS-TOKEN header" });
+    }
+
+    const response = await fetch("https://api.stringee.com/v1/room2/create", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-STRINGEE-AUTH": ACCESS_TOKEN,
+      },
+      body: JSON.stringify({
+        name: roomName || "default_room",
+        uniqueName: roomName || "default_room",
+      }),
+    });
+
+    const data = await response.json();
+    res.json(data);
+
+  } catch (err) {
+    console.error("Stringee create-room error:", err);
+    res.status(500).json({ error: "Failed to create room" });
+  }
+});
+
+app.post("/api/stringee/generate-room-token", (req, res) => {
+  const { roomId } = req.body;
+
+  if (!roomId) return res.status(400).json({ error: "Missing roomId" });
+
+  const apiKeySid = process.env.STRINGEE_API_KEY_SID;
+  const apiKeySecret = process.env.STRINGEE_API_KEY_SECRET;
+
+  const payload = {
+    jti: apiKeySid + "-" + Date.now(),
+    iss: apiKeySid,
+    exp: Math.floor(Date.now() / 1000) + 3600, 
+    roomId: roomId,
+    permissions: {
+      publish: true,
+      subscribe: true,
+      control_room: true,
+    },
+  };
+
+  const token = jwt.sign(payload, apiKeySecret, { algorithm: "HS256" });
+
+  res.json({
+    roomId,
+    roomToken: token,
+  });
+});
+
+app.get("/api/stringee/token", (req, res) => {
+  const apiKeySid = process.env.STRINGEE_API_KEY_SID;
+  const apiKeySecret = process.env.STRINGEE_API_KEY_SECRET;
+
+  if (!apiKeySid || !apiKeySecret) {
+    return res.status(500).json({ error: "Missing Stringee API keys" });
+  }
+
+  const payload = {
+    jti: apiKeySid + "-" + Date.now(),
+    iss: apiKeySid,
+    exp: Math.floor(Date.now() / 1000) + 3600,
+  };
+
+  const token = jwt.sign(payload, apiKeySecret, { algorithm: "HS256" });
+
+  res.json({ access_token: token });
+});
+
+
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 50 * 1024 * 1024 }
 });
 
-// --- Cloudflare R2 setup ---
 const r2 = new S3Client({
   region: "auto",
   endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
@@ -33,7 +109,6 @@ const r2 = new S3Client({
   },
 });
 
-// --- Upload route ---
 app.post("/upload", upload.single("file"), async (req, res) => {
   try {
     const file = req.file;
@@ -60,7 +135,6 @@ app.post("/upload", upload.single("file"), async (req, res) => {
   }
 });
 
-// --- Gemini Bot route ---
 app.post("/api/ask-gemini", async (req, res) => {
   const { prompt } = req.body;
 
@@ -117,13 +191,11 @@ app.get("/api/list-models", async (req, res) => {
   }
 });
 
-// --- Socket.IO chat ---
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
   socket.on("sendMessage", (msg) => io.emit("receiveMessage", msg));
   socket.on("disconnect", () => console.log("User disconnected:", socket.id));
 });
 
-// --- Start server ---
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
