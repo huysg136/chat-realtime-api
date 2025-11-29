@@ -78,21 +78,28 @@ app.post("/api/stringee/generate-room-token", (req, res) => {
 app.get("/api/stringee/token", (req, res) => {
   const apiKeySid = process.env.STRINGEE_API_KEY_SID;
   const apiKeySecret = process.env.STRINGEE_API_KEY_SECRET;
+  const { uid } = req.query; 
 
   if (!apiKeySid || !apiKeySecret) {
     return res.status(500).json({ error: "Missing Stringee API keys" });
   }
 
+  if (!uid) {
+    return res.status(400).json({ error: "Missing uid" });
+  }
+
   const payload = {
-    jti: apiKeySid + "-" + Date.now(),
-    iss: apiKeySid,
-    exp: Math.floor(Date.now() / 1000) + 3600,
+    jti: apiKeySid + "-" + Date.now(),  // token ID
+    iss: apiKeySid,                      // API key SID
+    exp: Math.floor(Date.now() / 1000) + 3600, // sống 1h
+    userId: uid                          // <=== bắt buộc cho Web SDK
   };
 
   const token = jwt.sign(payload, apiKeySecret, { algorithm: "HS256" });
 
   res.json({ access_token: token });
 });
+
 
 
 const upload = multer({
