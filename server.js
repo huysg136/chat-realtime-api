@@ -88,14 +88,19 @@ app.get("/api/stringee/token", (req, res) => {
     return res.status(400).json({ error: "Missing uid" });
   }
 
+  const now = Math.floor(Date.now() / 1000);
+
   const payload = {
-    jti: apiKeySid + "-" + Date.now(),  // token ID
-    iss: apiKeySid,                      // API key SID
-    exp: Math.floor(Date.now() / 1000) + 3600, // sống 1h
-    userId: uid                          // <=== bắt buộc cho Web SDK
+    jti: `${apiKeySid}-${Date.now()}`,
+    iss: apiKeySid,
+    exp: now + 3600, 
+    userId: uid,    
   };
 
   const token = jwt.sign(payload, apiKeySecret, { algorithm: "HS256" });
+
+  console.log("✅ Generated Stringee token:", token);
+  console.log("📦 Payload:", payload);
 
   res.json({ access_token: token });
 });
