@@ -80,6 +80,10 @@ app.get("/api/stringee/token", (req, res) => {
   const apiKeySecret = process.env.STRINGEE_API_KEY_SECRET;
   const { uid } = req.query; 
 
+  console.log("🔑 API Key SID:", apiKeySid);
+  console.log("🔑 API Key Secret (first 20 chars):", apiKeySecret?.substring(0, 20) + "...");
+  console.log("👤 User ID:", uid);
+
   if (!apiKeySid || !apiKeySecret) {
     return res.status(500).json({ error: "Missing Stringee API keys" });
   }
@@ -93,19 +97,18 @@ app.get("/api/stringee/token", (req, res) => {
   const payload = {
     jti: `${apiKeySid}-${Date.now()}`,
     iss: apiKeySid,
-    exp: now + 3600, 
-    userId: uid,    
+    exp: now + 3600,
+    userId: uid
   };
+
+  console.log("📦 Payload before signing:", JSON.stringify(payload, null, 2));
 
   const token = jwt.sign(payload, apiKeySecret, { algorithm: "HS256" });
 
-  console.log("✅ Generated Stringee token:", token);
-  console.log("📦 Payload:", payload);
+  console.log("✅ Generated token:", token);
 
   res.json({ access_token: token });
 });
-
-
 
 const upload = multer({
   storage: multer.memoryStorage(),
