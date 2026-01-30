@@ -6,6 +6,7 @@ import multer from "multer";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 dotenv.config();
 
@@ -339,6 +340,35 @@ const r2 = new S3Client({
     accessKeyId: process.env.R2_ACCESS_KEY_ID,
     secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
   },
+});
+
+app.post("/api/get-upload-url", async (req, res) => {
+  try {
+    const { fileName, fileType } = req.body;
+
+    if (!fileName || !fileType) {
+      return res.status(400).json({ error: "Missing fileName or fileType" });
+    }
+
+    const key = `uploads/${Date.now()}_${fileName}`;
+
+    const command = new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: key,
+      ContentType: fileType,
+    });
+
+    // Tạo presigned URL có hiệu lực 5 phút
+    const uploadUrl = await getSignedUrl(r2, command, { expiresIn: 300 });
+    const fileUrl = `${process.env.R2_PUBLIC_DOMAIN}/${key}`;
+
+    console.log("✅ Presigned URL generated:", key);
+
+    res.json({ uploadUrl, fileUrl });
+  } catch (err) {
+    console.error("❌ Presigned URL error:", err);
+    res.status(500).json({ error: "Failed to generate upload URL" });
+  }
 });
 
 app.post("/upload", upload.single("file"), async (req, res) => {

@@ -12,7 +12,7 @@
   "description": "",
   "dependencies": {
     "@aws-sdk/client-s3": "^3.917.0",
-    "@aws-sdk/s3-request-presigner": "^3.918.0",
+    "@aws-sdk/s3-request-presigner": "^3.978.0",
     "@google-ai/generativelanguage": "^3.5.0",
     "aws-sdk": "^2.1692.0",
     "cors": "^2.8.5",
