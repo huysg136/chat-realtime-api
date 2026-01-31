@@ -1,4 +1,3 @@
-// backend/services/emailService.js
 import { Resend } from "resend";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
@@ -29,127 +28,116 @@ function viDate(dateInput) {
   }
 }
 
-function baseLayout({ title, contentHtml }) {
+// Cải tiến bố cục Layout sạch sẽ và hiện đại hơn
+function baseLayout({ title, contentHtml, isApprove = false }) {
+  // Màu chủ đạo thay đổi theo trạng thái Duyệt/Từ chối
+  const brandColor = isApprove ? "#ef4444" : "#3b82f6";
+  
   return `
 <!doctype html>
 <html lang="vi">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>${escapeHtml(title)}</title>
 </head>
-<body style="margin:0;padding:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111;">
-  <div style="max-width:600px;margin:0 auto;padding:24px;">
-
-    <!-- Logo -->
-    <div style="text-align:center;padding-bottom:20px;">
-      <img src="https://quik.id.vn/logo_quik.png" 
-           alt="Quik" 
-           width="120" 
-           style="display:block;margin:0 auto;" />
-    </div>
-
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
-      <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;">
-        <div style="font-size:18px;font-weight:700;">Quik</div>
-        <div style="margin-top:4px;font-size:14px;color:#6b7280;">${escapeHtml(title)}</div>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;">
+  <div style="max-width:600px;margin:40px auto;padding:0 20px;">
+    
+    <div style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 12px rgba(0,0,0,0.05);border:1px solid #e2e8f0;">
+      
+      <div style="padding:32px 32px 20px; text-align:center; border-bottom: 1px solid #f1f5f9;">
+        <img src="https://quik.id.vn/logo_quik.png" 
+             alt="Quik" 
+             width="64" 
+             style="display:block;margin:0 auto 16px; border-radius:12px;" />
+        <div style="font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#0f172a;">Quik</div>
+        <div style="margin-top:4px;font-size:14px;font-weight:500;color:${brandColor};text-transform:uppercase;letter-spacing:1px;">
+          ${escapeHtml(title)}
+        </div>
       </div>
 
-      <div style="padding:20px;">
+      <div style="padding:32px;">
         ${contentHtml}
       </div>
 
-      <div style="padding:14px 20px;border-top:1px solid #e5e7eb;background:#fafafa;font-size:12px;color:#6b7280;">
-        Email này được gửi tự động, vui lòng không trả lời.
+      <div style="padding:24px 32px;background:#f8fafc;border-top:1px solid #f1f5f9;text-align:center;">
+        <p style="margin:0;font-size:13px;color:#64748b;">Đây là thông báo tự động từ hệ thống quản trị Quik.</p>
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid #e2e8f0;">
+             <a href="https://quik.id.vn" style="color:#0f172a;text-decoration:none;font-weight:600;font-size:14px;">quik.id.vn</a>
+        </div>
       </div>
     </div>
 
-    <div style="text-align:center;font-size:12px;color:#9ca3af;margin-top:12px;">
-      © ${new Date().getFullYear()} Quik • 
-      <a href="https://quik.id.vn" style="color:#2563eb;text-decoration:none;">quik.id.vn</a>
+    <div style="text-align:center;font-size:12px;color:#94a3b8;margin-top:24px;">
+      © ${new Date().getFullYear()} Quik Inc. Bảo lưu mọi quyền.
     </div>
-
   </div>
 </body>
 </html>
   `.trim();
 }
 
-
-// ==================== TEMPLATES (BASIC) ====================
+// ==================== TEMPLATES ====================
 
 function renderRejectEmail({ reporterName, messageText, adminName, reason, reportDate }) {
   const content = `
-    <p style="margin:0 0 12px;">Xin chào <b>${escapeHtml(reporterName)}</b>,</p>
-
-    <p style="margin:0 0 12px;">
-      Cảm ơn bạn đã gửi báo cáo vào ngày <b>${escapeHtml(reportDate)}</b>.
-      Sau khi xem xét, chúng tôi chưa thấy dấu hiệu vi phạm từ nội dung được báo cáo.
+    <p style="margin:0 0 16px;font-size:16px;">Xin chào <strong>${escapeHtml(reporterName)}</strong>,</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#475569;">
+      Cảm ơn bạn đã báo cáo nội dung vào ngày ${escapeHtml(reportDate)}. Sau khi đội ngũ quản trị xem xét, chúng tôi chưa tìm thấy bằng chứng vi phạm quy chuẩn cộng đồng.
     </p>
 
-    <div style="margin:14px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;">
-      <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">Tin nhắn được báo cáo</div>
-      <div style="font-size:14px;color:#111;">"${escapeHtml(messageText)}"</div>
+    <div style="background:#f1f5f9;border-radius:12px;padding:20px;margin-bottom:24px;">
+      <div style="font-size:12px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:8px;">Nội dung bạn đã báo cáo</div>
+      <div style="font-size:15px;color:#1e293b;font-style:italic;line-height:1.5;">"${escapeHtml(messageText)}"</div>
     </div>
 
-    <div style="margin:14px 0;padding:12px;border-left:4px solid #9ca3af;background:#f9fafb;">
-      <div style="font-size:14px;"><b>Kết quả:</b> Không vi phạm</div>
-      <div style="font-size:13px;color:#6b7280;margin-top:4px;">
-        Ghi chú: ${escapeHtml(reason || "Đã kiểm tra và không thấy vi phạm.")}
-      </div>
+    <div style="border-left:4px solid #94a3b8;padding-left:16px;margin-bottom:24px;">
+      <div style="font-size:15px;font-weight:700;color:#0f172a;">Kết quả: Giữ nguyên nội dung</div>
+      <p style="margin:4px 0 0;font-size:14px;color:#64748b;">${escapeHtml(reason || "Nội dung này không vi phạm chính sách của chúng tôi.")}</p>
     </div>
 
-    <p style="margin:0 0 6px;font-size:13px;color:#374151;">
-      Xử lý bởi: <b>${escapeHtml(adminName)}</b>
-    </p>
-    <p style="margin:0;font-size:13px;color:#374151;">
-      Ngày xử lý: <b>${escapeHtml(viDate())}</b>
-    </p>
+    <div style="font-size:13px;color:#94a3b8;">
+      Người duyệt: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}
+    </div>
   `;
 
   return baseLayout({
-    title: "Kết quả báo cáo: Không vi phạm",
+    title: "Báo cáo không vi phạm",
     contentHtml: content,
+    isApprove: false
   });
 }
 
 function renderApproveEmail({ reporterName, messageText, adminName, reason, reportDate, action }) {
-  const actionText =
-    action === "delete_and_ban"
-      ? "Tin nhắn đã bị xóa và tài khoản vi phạm đã bị hạn chế."
-      : "Tin nhắn đã bị xóa khỏi hệ thống.";
+  const actionText = action === "delete_and_ban" 
+    ? "Xóa tin nhắn & Hạn chế tài khoản" 
+    : "Đã xóa tin nhắn";
 
   const content = `
-    <p style="margin:0 0 12px;">Xin chào <b>${escapeHtml(reporterName)}</b>,</p>
-
-    <p style="margin:0 0 12px;">
-      Cảm ơn bạn đã gửi báo cáo vào ngày <b>${escapeHtml(reportDate)}</b>.
-      Sau khi xem xét, chúng tôi xác nhận nội dung <b>vi phạm quy định</b>.
+    <p style="margin:0 0 16px;font-size:16px;">Xin chào <strong>${escapeHtml(reporterName)}</strong>,</p>
+    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:#475569;">
+      Dựa trên báo cáo ngày ${escapeHtml(reportDate)} của bạn, chúng tôi xác nhận nội dung dưới đây đã <strong>vi phạm quy định</strong> của Quik.
     </p>
 
-    <div style="margin:14px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#fff7ed;">
-      <div style="font-size:12px;color:#6b7280;margin-bottom:6px;">Tin nhắn vi phạm</div>
-      <div style="font-size:14px;color:#111;">"${escapeHtml(messageText)}"</div>
+    <div style="background:#fff1f2;border-radius:12px;padding:20px;margin-bottom:24px;border:1px solid #fecdd3;">
+      <div style="font-size:12px;font-weight:600;color:#be123c;text-transform:uppercase;margin-bottom:8px;">Tin nhắn vi phạm</div>
+      <div style="font-size:15px;color:#9f1239;font-style:italic;line-height:1.5;">"${escapeHtml(messageText)}"</div>
     </div>
 
-    <div style="margin:14px 0;padding:12px;border-left:4px solid #ef4444;background:#fef2f2;">
-      <div style="font-size:14px;"><b>Hành động:</b> ${escapeHtml(actionText)}</div>
-      <div style="font-size:13px;color:#6b7280;margin-top:4px;">
-        Lý do: ${escapeHtml(reason || "Vi phạm quy định cộng đồng.")}
-      </div>
+    <div style="border-left:4px solid #ef4444;padding-left:16px;margin-bottom:24px;">
+      <div style="font-size:15px;font-weight:700;color:#0f172a;">Hành động: ${escapeHtml(actionText)}</div>
+      <p style="margin:4px 0 0;font-size:14px;color:#64748b;">Lý do: ${escapeHtml(reason || "Vi phạm tiêu chuẩn cộng đồng.")}</p>
     </div>
 
-    <p style="margin:0 0 6px;font-size:13px;color:#374151;">
-      Xử lý bởi: <b>${escapeHtml(adminName)}</b>
-    </p>
-    <p style="margin:0;font-size:13px;color:#374151;">
-      Ngày xử lý: <b>${escapeHtml(viDate())}</b>
-    </p>
+    <div style="font-size:13px;color:#94a3b8;">
+      Người duyệt: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}
+    </div>
   `;
 
   return baseLayout({
-    title: "Kết quả báo cáo: Đã xử lý vi phạm",
+    title: "Đã xử lý vi phạm",
     contentHtml: content,
+    isApprove: true
   });
 }
 
