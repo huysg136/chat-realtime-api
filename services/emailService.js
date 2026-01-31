@@ -14,126 +14,246 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #333;
+      color: #e2e8f0;
+      background-color: #0f172a;
+      padding: 40px 20px;
+    }
+    .email-wrapper {
       max-width: 600px;
       margin: 0 auto;
-      padding: 20px;
-    }
-    .container {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     }
     .header {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 30px;
+      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      padding: 40px 30px;
       text-align: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .logo {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
     }
     .header h1 {
-      margin: 0;
-      font-size: 24px;
+      font-size: 28px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 10px;
     }
     .status-badge {
       display: inline-block;
-      padding: 8px 16px;
-      background: #10b981;
-      color: white;
+      padding: 8px 20px;
+      background: rgba(148, 163, 184, 0.2);
+      color: #94a3b8;
       border-radius: 20px;
-      font-weight: 600;
-      font-size: 14px;
-      margin: 10px 0;
+      font-weight: 500;
+      font-size: 13px;
+      border: 1px solid rgba(148, 163, 184, 0.3);
     }
-    .status-badge.rejected {
-      background: #8b9a9f;
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 16px;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .greeting strong {
+      color: #f1f5f9;
     }
     .message-box {
-      background: #f9fafb;
-      border-left: 4px solid #667eea;
-      padding: 15px;
-      margin: 20px 0;
-      border-radius: 4px;
+      background: rgba(30, 41, 59, 0.6);
+      border-left: 3px solid #64748b;
+      padding: 20px;
+      margin: 25px 0;
+      border-radius: 8px;
+    }
+    .message-box-title {
+      font-size: 13px;
+      color: #94a3b8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .message-text {
+      color: #e2e8f0;
+      font-style: italic;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .info-card {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 25px 0;
     }
     .info-row {
       display: flex;
-      padding: 12px 0;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     .info-row:last-child {
       border-bottom: none;
+      padding-bottom: 0;
+    }
+    .info-row:first-child {
+      padding-top: 0;
     }
     .info-label {
       font-weight: 600;
-      color: #6b7280;
+      color: #94a3b8;
       min-width: 120px;
+      font-size: 14px;
     }
     .info-value {
-      color: #111827;
+      color: #e2e8f0;
       flex: 1;
+      font-size: 14px;
+    }
+    .conclusion {
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
+      border: 1px solid rgba(59, 130, 246, 0.3);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 25px 0;
+      text-align: center;
+    }
+    .conclusion-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #60a5fa;
+      margin-bottom: 8px;
+    }
+    .conclusion-text {
+      color: #cbd5e1;
+      font-size: 14px;
+    }
+    .footer-note {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 25px;
     }
     .footer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 30px;
       text-align: center;
-      color: #6b7280;
-      font-size: 13px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .button {
-      display: inline-block;
-      padding: 12px 24px;
-      background: #667eea;
-      color: white;
+    .footer-brand {
+      font-size: 20px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+    }
+    .footer-text {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 5px;
+    }
+    .footer-link {
+      color: #60a5fa;
       text-decoration: none;
-      border-radius: 6px;
-      font-weight: 600;
-      margin-top: 20px;
+    }
+    @media only screen and (max-width: 600px) {
+      body {
+        padding: 20px 10px;
+      }
+      .content {
+        padding: 30px 20px;
+      }
+      .header {
+        padding: 30px 20px;
+      }
+      .info-row {
+        flex-direction: column;
+      }
+      .info-label {
+        margin-bottom: 5px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="email-wrapper">
     <div class="header">
-      <h1>📋 Kết quả xử lý báo cáo</h1>
-      <span class="status-badge rejected">Không vi phạm</span>
-    </div>
-
-    <p>Xin chào <strong>${reporterName}</strong>,</p>
-    
-    <p>Cảm ơn bạn đã báo cáo tin nhắn vi phạm vào ngày <strong>${reportDate}</strong>. Sau khi xem xét kỹ lưỡng, chúng tôi xin thông báo kết quả như sau:</p>
-
-    <div class="message-box">
-      <strong>Tin nhắn được báo cáo:</strong>
-      <p style="margin: 10px 0; font-style: italic;">"${messageText}"</p>
-    </div>
-
-    <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-      <div class="info-row">
-        <div class="info-label">🔍 Kết luận:</div>
-        <div class="info-value"><strong>Không có dấu hiệu vi phạm</strong></div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">👤 Xử lý bởi:</div>
-        <div class="info-value">${adminName}</div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">📝 Lý do:</div>
-        <div class="info-value">${reason}</div>
+      <div class="logo">Q</div>
+      <h1>Kết quả xử lý báo cáo</h1>
+      <div style="margin-top: 15px;">
+        <span class="status-badge">Không vi phạm</span>
       </div>
     </div>
 
-    <p>Chúng tôi rất trân trọng sự quan tâm của bạn trong việc giữ cho cộng đồng an toàn. Mặc dù lần này tin nhắn không vi phạm quy định, nhưng việc báo cáo của bạn vẫn rất quan trọng với chúng tôi.</p>
+    <div class="content">
+      <p class="greeting">Xin chào <strong>${reporterName}</strong>,</p>
+      
+      <p class="greeting">
+        Cảm ơn bạn đã báo cáo tin nhắn vi phạm vào ngày <strong>${reportDate}</strong>. 
+        Sau khi xem xét kỹ lưỡng, chúng tôi xin thông báo kết quả như sau:
+      </p>
+
+      <div class="message-box">
+        <div class="message-box-title">Tin nhắn được báo cáo</div>
+        <div class="message-text">"${messageText}"</div>
+      </div>
+
+      <div class="conclusion">
+        <div class="conclusion-title">Không có dấu hiệu vi phạm</div>
+        <div class="conclusion-text">Nội dung này tuân thủ quy định cộng đồng của chúng tôi</div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-row">
+          <div class="info-label">Xử lý bởi</div>
+          <div class="info-value">${adminName}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Lý do</div>
+          <div class="info-value">${reason}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Ngày xử lý</div>
+          <div class="info-value">${new Date().toLocaleDateString('vi-VN')}</div>
+        </div>
+      </div>
+
+      <p class="footer-note">
+        Chúng tôi rất trân trọng sự quan tâm của bạn trong việc giữ cho cộng đồng an toàn. 
+        Mặc dù lần này tin nhắn không vi phạm quy định, nhưng việc báo cáo của bạn vẫn rất 
+        quan trọng với chúng tôi.
+      </p>
+    </div>
 
     <div class="footer">
-      <p><strong>Quik</strong></p>
-      <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+      <div class="footer-brand">Quik</div>
+      <p class="footer-text">Email này được gửi tự động, vui lòng không trả lời.</p>
+      <p class="footer-text" style="margin-top: 10px;">
+        <a href="https://quik.id.vn" class="footer-link">quik.id.vn</a>
+      </p>
     </div>
   </div>
 </body>
@@ -154,128 +274,259 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #333;
+      color: #e2e8f0;
+      background-color: #0f172a;
+      padding: 40px 20px;
+    }
+    .email-wrapper {
       max-width: 600px;
       margin: 0 auto;
-      padding: 20px;
-    }
-    .container {
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 30px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
     }
     .header {
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-      color: white;
-      padding: 20px;
-      border-radius: 8px;
-      margin-bottom: 30px;
+      background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+      padding: 40px 30px;
       text-align: center;
+      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .logo {
+      width: 60px;
+      height: 60px;
+      margin: 0 auto 20px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
     }
     .header h1 {
-      margin: 0;
-      font-size: 24px;
+      font-size: 28px;
+      font-weight: 600;
+      color: #f1f5f9;
+      margin-bottom: 10px;
     }
     .status-badge {
       display: inline-block;
-      padding: 8px 16px;
-      background: #ef4444;
-      color: white;
+      padding: 8px 20px;
+      background: rgba(239, 68, 68, 0.2);
+      color: #fca5a5;
       border-radius: 20px;
-      font-weight: 600;
-      font-size: 14px;
-      margin: 10px 0;
+      font-weight: 500;
+      font-size: 13px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .greeting {
+      font-size: 16px;
+      color: #cbd5e1;
+      margin-bottom: 20px;
+    }
+    .greeting strong {
+      color: #f1f5f9;
     }
     .message-box {
-      background: #fef2f2;
-      border-left: 4px solid #ef4444;
-      padding: 15px;
-      margin: 20px 0;
-      border-radius: 4px;
+      background: rgba(127, 29, 29, 0.2);
+      border-left: 3px solid #ef4444;
+      padding: 20px;
+      margin: 25px 0;
+      border-radius: 8px;
+    }
+    .message-box-title {
+      font-size: 13px;
+      color: #fca5a5;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 12px;
+    }
+    .message-text {
+      color: #fecaca;
+      font-style: italic;
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .success-box {
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 25px 0;
+      text-align: center;
+    }
+    .success-title {
+      font-size: 18px;
+      font-weight: 600;
+      color: #4ade80;
+      margin-bottom: 10px;
+    }
+    .success-text {
+      color: #86efac;
+      font-size: 15px;
+    }
+    .info-card {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 25px;
+      margin: 25px 0;
     }
     .info-row {
       display: flex;
-      padding: 12px 0;
-      border-bottom: 1px solid #e5e7eb;
+      padding: 15px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     }
     .info-row:last-child {
       border-bottom: none;
+      padding-bottom: 0;
+    }
+    .info-row:first-child {
+      padding-top: 0;
     }
     .info-label {
       font-weight: 600;
-      color: #6b7280;
+      color: #94a3b8;
       min-width: 120px;
+      font-size: 14px;
     }
     .info-value {
-      color: #111827;
+      color: #e2e8f0;
       flex: 1;
+      font-size: 14px;
     }
-    .success-box {
-      background: #dcfce7;
-      border: 2px solid #22c55e;
+    .footer-note {
+      color: #94a3b8;
+      font-size: 14px;
+      line-height: 1.6;
+      margin-top: 25px;
+    }
+    .thank-you {
+      background: rgba(59, 130, 246, 0.1);
+      border: 1px solid rgba(59, 130, 246, 0.2);
       border-radius: 8px;
-      padding: 20px;
-      margin: 20px 0;
+      padding: 15px;
+      margin-top: 20px;
       text-align: center;
-    }
-    .success-box h3 {
-      color: #16a34a;
-      margin: 0 0 10px 0;
+      color: #93c5fd;
+      font-weight: 500;
     }
     .footer {
-      margin-top: 30px;
-      padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 30px;
       text-align: center;
-      color: #6b7280;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .footer-brand {
+      font-size: 20px;
+      font-weight: 700;
+      color: #60a5fa;
+      margin-bottom: 10px;
+      letter-spacing: 0.5px;
+    }
+    .footer-text {
       font-size: 13px;
+      color: #64748b;
+      margin-top: 5px;
+    }
+    .footer-link {
+      color: #60a5fa;
+      text-decoration: none;
+    }
+    @media only screen and (max-width: 600px) {
+      body {
+        padding: 20px 10px;
+      }
+      .content {
+        padding: 30px 20px;
+      }
+      .header {
+        padding: 30px 20px;
+      }
+      .info-row {
+        flex-direction: column;
+      }
+      .info-label {
+        margin-bottom: 5px;
+      }
     }
   </style>
 </head>
 <body>
-  <div class="container">
+  <div class="email-wrapper">
     <div class="header">
-      <h1>✅ Kết quả xử lý báo cáo</h1>
-      <span class="status-badge">Đã xử lý vi phạm</span>
-    </div>
-
-    <p>Xin chào <strong>${reporterName}</strong>,</p>
-    
-    <p>Cảm ơn bạn đã báo cáo tin nhắn vi phạm vào ngày <strong>${reportDate}</strong>. Sau khi xem xét, chúng tôi xác nhận tin nhắn này <strong>vi phạm quy định cộng đồng</strong>.</p>
-
-    <div class="message-box">
-      <strong>⚠️ Tin nhắn vi phạm:</strong>
-      <p style="margin: 10px 0; font-style: italic; color: #991b1b;">"${messageText}"</p>
-    </div>
-
-    <div class="success-box">
-      <h3>✅ Hành động đã thực hiện</h3>
-      <p style="margin: 0; font-size: 15px;">${actionText}</p>
-    </div>
-
-    <div style="background: #fff; border: 1px solid #e5e7eb; border-radius: 8px; padding: 20px; margin: 20px 0;">
-      <div class="info-row">
-        <div class="info-label">👤 Xử lý bởi:</div>
-        <div class="info-value">${adminName}</div>
-      </div>
-      <div class="info-row">
-        <div class="info-label">📝 Lý do:</div>
-        <div class="info-value">${reason}</div>
+      <div class="logo">Q</div>
+      <h1>Kết quả xử lý báo cáo</h1>
+      <div style="margin-top: 15px;">
+        <span class="status-badge">Đã xử lý vi phạm</span>
       </div>
     </div>
 
-    <p>Chúng tôi đánh giá cao việc bạn đã giúp chúng tôi duy trì một cộng đồng an toàn và lành mạnh. Báo cáo của bạn đã giúp chúng tôi ngăn chặn nội dung vi phạm.</p>
+    <div class="content">
+      <p class="greeting">Xin chào <strong>${reporterName}</strong>,</p>
+      
+      <p class="greeting">
+        Cảm ơn bạn đã báo cáo tin nhắn vi phạm vào ngày <strong>${reportDate}</strong>. 
+        Sau khi xem xét, chúng tôi xác nhận tin nhắn này <strong>vi phạm quy định cộng đồng</strong>.
+      </p>
 
-    <p style="color: #16a34a; font-weight: 600;">🙏 Cảm ơn bạn đã là một thành viên có trách nhiệm!</p>
+      <div class="message-box">
+        <div class="message-box-title">Tin nhắn vi phạm</div>
+        <div class="message-text">"${messageText}"</div>
+      </div>
+
+      <div class="success-box">
+        <div class="success-title">Hành động đã thực hiện</div>
+        <div class="success-text">${actionText}</div>
+      </div>
+
+      <div class="info-card">
+        <div class="info-row">
+          <div class="info-label">Xử lý bởi</div>
+          <div class="info-value">${adminName}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Lý do</div>
+          <div class="info-value">${reason}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">Ngày xử lý</div>
+          <div class="info-value">${new Date().toLocaleDateString('vi-VN')}</div>
+        </div>
+      </div>
+
+      <p class="footer-note">
+        Chúng tôi đánh giá cao việc bạn đã giúp chúng tôi duy trì một cộng đồng an toàn và lành mạnh. 
+        Báo cáo của bạn đã giúp chúng tôi ngăn chặn nội dung vi phạm.
+      </p>
+
+      <div class="thank-you">
+        Cảm ơn bạn đã là một thành viên có trách nhiệm!
+      </div>
+    </div>
 
     <div class="footer">
-      <p><strong>Quik </strong></p>
-      <p>Email này được gửi tự động, vui lòng không trả lời.</p>
+      <div class="footer-brand">Quik</div>
+      <p class="footer-text">Email này được gửi tự động, vui lòng không trả lời.</p>
+      <p class="footer-text" style="margin-top: 10px;">
+        <a href="https://quik.id.vn" class="footer-link">quik.id.vn</a>
+      </p>
     </div>
   </div>
 </body>
@@ -320,11 +571,11 @@ export async function sendReportResultEmail({
         });
 
     const subject = isRejected
-      ? "📋 Kết quả báo cáo: Không vi phạm"
-      : "✅ Kết quả báo cáo: Đã xử lý vi phạm";
+      ? "Kết quả báo cáo: Không vi phạm"
+      : "Kết quả báo cáo: Đã xử lý vi phạm";
 
     const data = await resend.emails.send({
-      from: 'Quik <noreply@quik.id.vn>', // ⭐ Thay bằng domain của bạn
+      from: 'Quik <admin@quik.id.vn>',
       to: [reporterEmail],
       subject: subject,
       html: emailTemplate,
