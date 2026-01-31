@@ -30,7 +30,6 @@ function viDate(dateInput) {
 }
 
 function baseLayout({ title, contentHtml }) {
-  // CSS tối giản, email client nào cũng chịu được
   return `
 <!doctype html>
 <html lang="vi">
@@ -41,6 +40,15 @@ function baseLayout({ title, contentHtml }) {
 </head>
 <body style="margin:0;padding:0;background:#f6f7f9;font-family:Arial,Helvetica,sans-serif;color:#111;">
   <div style="max-width:600px;margin:0 auto;padding:24px;">
+
+    <!-- Logo -->
+    <div style="text-align:center;padding-bottom:20px;">
+      <img src="https://quik.id.vn/images/logo_quik.png" 
+           alt="Quik" 
+           width="120" 
+           style="display:block;margin:0 auto;" />
+    </div>
+
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
       <div style="padding:16px 20px;border-bottom:1px solid #e5e7eb;">
         <div style="font-size:18px;font-weight:700;">Quik</div>
@@ -57,13 +65,16 @@ function baseLayout({ title, contentHtml }) {
     </div>
 
     <div style="text-align:center;font-size:12px;color:#9ca3af;margin-top:12px;">
-      © ${new Date().getFullYear()} Quik • <a href="https://quik.id.vn" style="color:#2563eb;text-decoration:none;">quik.id.vn</a>
+      © ${new Date().getFullYear()} Quik • 
+      <a href="https://quik.id.vn" style="color:#2563eb;text-decoration:none;">quik.id.vn</a>
     </div>
+
   </div>
 </body>
 </html>
-`.trim();
+  `.trim();
 }
+
 
 // ==================== TEMPLATES (BASIC) ====================
 
