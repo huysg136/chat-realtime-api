@@ -415,7 +415,7 @@ app.post("/api/ask-groq", async (req, res) => {
         },
         body: JSON.stringify({
           // Model Llama-3.3-70b cực mạnh hoặc llama3-8b cực nhanh
-          model: "llama-3.3-70b-versatile", 
+          model: "llama-31-8b-instant", 
           messages: [
             {
               role: "user",
