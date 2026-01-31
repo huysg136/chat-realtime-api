@@ -1,1 +1,111 @@
-NODE.JS LƯU FILE, VOICE,...
+# ⚡ Quik Backend API
+
+[![Node.js](https://img.shields.io/badge/Node.js-18-green?logo=node.js&logoColor=white)]
+[![Express](https://img.shields.io/badge/Express-5.0-black?logo=express&logoColor=white)]
+[![Stringee](https://img.shields.io/badge/Stringee-Video%20Call-red)]
+[![Cloudflare R2](https://img.shields.io/badge/Cloudflare-R2_Storage-orange?logo=cloudflare&logoColor=white)]
+[![AI](https://img.shields.io/badge/AI-Gemini%20%26%20Llama-blue?logo=google-gemini&logoColor=white)]
+
+The robust **Node.js backend** for the **Quik Real-Time Chat Application**. It powers high-performance video calls, fast file storage, smart AI assistants, and automated reporting systems.
+
+Built with a **Clean, Modular Architecture** for scalability and maintainability.
+
+---
+
+## 🚀 Features
+
+- **📹 Video Call Orchestration**: Secure token generation and room management using **Stringee SDK**.
+- **☁️ High-Speed Storage**: Presigned URL uploads to **Cloudflare R2** (S3 compatible) for lightning-fast media sharing.
+- **🤖 Smart AI Assistant**: Integration with **Groq (Llama 3)** and **Google Gemini 2.5** for intelligent chat responses.
+- **📧 Automated Reporting**: Email notification system for content moderation using **Resend**.
+- **🏗 Modular Architecture**: Organized into Feature-based modules (Controller-Service pattern).
+- **🛡️ Secure & Robust**: Centralized error handling and configuration management.
+
+---
+
+## 🛠️ Tech Stack
+
+- **Runtime**: Node.js
+- **Framework**: Express.js
+- **Real-Time Communication**: Stringee SDK (Video/Voice)
+- **Object Storage**: AWS SDK v3 (for Cloudflare R2)
+- **AI Models**: 
+    - Google Gemini 2.5 Flash Lite
+    - Groq (Llama 3.1 8b Instant)
+- **Email Service**: Resend
+- **Architecture**: Modular Feature-based design
+
+---
+
+## 📂 Project Structure
+
+```bash
+src/
+├── AI/           # AI Controllers & Services (Gemini/Groq)
+├── Config/       # Centralized Configuration & Env Validation
+├── Exception/    # Global Error Handling
+├── Reports/      # Email Reporting System
+├── Stringee/     # Video Call Token & Room Logic
+└── Upload/       # R2 Storage & Presigned URLs
+server.js         # Application Entry Point
+```
+
+## 🔧 Setup & Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repo-url>
+   cd chat-realtime-api
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Configure Environment Variables**
+   Create a `.env` file in the root directory:
+   ```env
+   # App
+   PORT=3000
+
+   # Stringee (Video Call)
+   STRINGEE_API_KEY_SID=your_sid
+   STRINGEE_API_KEY_SECRET=your_secret
+
+   # Cloudflare R2 (Storage)
+   R2_ACCOUNT_ID=your_account_id
+   R2_ACCESS_KEY_ID=your_access_key
+   R2_SECRET_ACCESS_KEY=your_secret_key
+   R2_BUCKET_NAME=your_bucket
+   R2_PUBLIC_DOMAIN=your_public_domain
+
+   # AI Services
+   GROQ_API_KEY=your_groq_key
+   GEMINI_API_KEY=your_gemini_key
+
+   # Email
+   RESEND_API_KEY=your_resend_key
+   ```
+
+4. **Start the Server**
+   ```bash
+   npm start
+   ```
+
+---
+
+## 🔗 API Overview
+
+| Feature | Endpoint | Method | Description |
+|:---|:---|:---:|:---|
+| **Stringee** | `/api/stringee/token` | `GET` | Get client access token |
+| | `/api/stringee/create-room` | `POST` | Create a new video room |
+| **Upload** | `/api/get-upload-url` | `POST` | Get presigned URL for R2 upload |
+| **AI** | `/api/ask-groq` | `POST` | Chat with Llama 3 via Groq |
+| | `/api/ask-gemini` | `POST` | Chat with Gemini 2.5 |
+| **Reports** | `/api/reports/notify` | `POST` | Send report decision email |
+
+---
+
+Made with ❤️ for **Quik**.
