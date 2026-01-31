@@ -132,7 +132,7 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
     <p>Chúng tôi rất trân trọng sự quan tâm của bạn trong việc giữ cho cộng đồng an toàn. Mặc dù lần này tin nhắn không vi phạm quy định, nhưng việc báo cáo của bạn vẫn rất quan trọng với chúng tôi.</p>
 
     <div class="footer">
-      <p><strong>Chat App - Cộng đồng an toàn</strong></p>
+      <p><strong>Quik</strong></p>
       <p>Email này được gửi tự động, vui lòng không trả lời.</p>
     </div>
   </div>
@@ -274,7 +274,7 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
     <p style="color: #16a34a; font-weight: 600;">🙏 Cảm ơn bạn đã là một thành viên có trách nhiệm!</p>
 
     <div class="footer">
-      <p><strong>Chat App - Cộng đồng an toàn</strong></p>
+      <p><strong>Quik </strong></p>
       <p>Email này được gửi tự động, vui lòng không trả lời.</p>
     </div>
   </div>
@@ -324,7 +324,7 @@ export async function sendReportResultEmail({
       : "✅ Kết quả báo cáo: Đã xử lý vi phạm";
 
     const data = await resend.emails.send({
-      from: 'Chat App <noreply@yourdomain.com>', // ⭐ Thay bằng domain của bạn
+      from: 'Quik <noreply@quik.id.vn>', // ⭐ Thay bằng domain của bạn
       to: [reporterEmail],
       subject: subject,
       html: emailTemplate,
