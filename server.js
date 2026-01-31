@@ -19,6 +19,7 @@ const io = new Server(server, {
 app.use(cors());
 app.use(express.json());
 
+
 // ============= STRINGEE VIDEO CALL API =============
 
 /**
@@ -394,6 +395,52 @@ app.post("/upload", upload.single("file"), async (req, res) => {
       return res.status(413).json({ error: "File too large" });
     }
     res.status(500).json({ error: "Upload failed" });
+  }
+});
+
+app.post("/api/ask-groq", async (req, res) => {
+  const { prompt } = req.body;
+  if (!prompt) return res.status(400).json({ error: "Missing prompt" });
+
+  const API_KEY = process.env.GROQ_API_KEY; // Lưu key vào file .env nhé
+
+  try {
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${API_KEY}`
+        },
+        body: JSON.stringify({
+          // Model Llama-3.3-70b cực mạnh hoặc llama3-8b cực nhanh
+          model: "llama-3.3-70b-versatile", 
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        })
+      }
+    );
+
+    const data = await response.json();
+
+    if (data.error) {
+      return res.status(400).json({ error: data.error.message });
+    }
+
+    // Cấu trúc trả về của Groq (chuẩn OpenAI)
+    const answer = data.choices?.[0]?.message?.content;
+
+    if (!answer) return res.status(500).json({ error: "No response from Groq" });
+
+    res.json({ answer });
+  } catch (err) {
+    console.error("❌ Groq error:", err);
+    res.status(500).json({ error: err.message });
   }
 });
 
