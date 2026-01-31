@@ -43,7 +43,7 @@ function baseLayout({ title, contentHtml }) {
 
     <!-- Logo -->
     <div style="text-align:center;padding-bottom:20px;">
-      <img src="https://quik.id.vn/images/logo_quik.png" 
+      <img src="https://quik.id.vn/logo_quik.png" 
            alt="Quik" 
            width="120" 
            style="display:block;margin:0 auto;" />
