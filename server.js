@@ -402,7 +402,7 @@ app.post("/api/ask-groq", async (req, res) => {
   const { prompt } = req.body;
   if (!prompt) return res.status(400).json({ error: "Missing prompt" });
 
-  const API_KEY = process.env.GROQ_API_KEY; // Lưu key vào file .env nhé
+  const API_KEY = process.env.GROQ_API_KEY;
 
   try {
     const response = await fetch(
@@ -414,33 +414,45 @@ app.post("/api/ask-groq", async (req, res) => {
           "Authorization": `Bearer ${API_KEY}`
         },
         body: JSON.stringify({
-          // Model Llama-3.3-70b cực mạnh hoặc llama3-8b cực nhanh
           model: "llama-3.1-8b-instant",
-          messages: [
-            {
-              role: "user",
-              content: prompt
-            }
-          ]
+          messages: [{ role: "user", content: prompt }]
         })
       }
     );
 
     const data = await response.json();
 
-    if (data.error) {
-      return res.status(400).json({ error: data.error.message });
+    // Handle rate limit specifically
+    if (response.status === 429) {
+      return res.status(429).json({ 
+        error: "Rate limit exceeded",
+        code: "RATE_LIMIT_EXCEEDED"
+      });
     }
 
-    // Cấu trúc trả về của Groq (chuẩn OpenAI)
+    if (data.error) {
+      return res.status(400).json({ 
+        error: data.error.message,
+        code: data.error.code || "API_ERROR"
+      });
+    }
+
     const answer = data.choices?.[0]?.message?.content;
 
-    if (!answer) return res.status(500).json({ error: "No response from Groq" });
+    if (!answer) {
+      return res.status(500).json({ 
+        error: "No response from Groq",
+        code: "EMPTY_RESPONSE"
+      });
+    }
 
     res.json({ answer });
   } catch (err) {
     console.error("❌ Groq error:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ 
+      error: err.message,
+      code: "INTERNAL_ERROR"
+    });
   }
 });
 
