@@ -52,7 +52,7 @@ function baseLayout({ title, contentHtml, isApprove = false }) {
               <img src="https://quik.id.vn/logo_quik.png" 
                    alt="Quik" 
                    width="64" 
-                   style="display:block;margin:0 auto 16px;border-radius:12px;" />
+                   style="display:block;margin:0 auto;border-radius:50%;" />
               <div style="font-size:24px;font-weight:700;letter-spacing:-0.5px;color:#0f172a;">Quik</div>
               <div style="margin-top:8px;font-size:13px;font-weight:600;color:${brandColor};text-transform:uppercase;letter-spacing:1.2px;">
                 ${escapeHtml(title)}
