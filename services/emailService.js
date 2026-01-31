@@ -24,88 +24,91 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #e2e8f0;
-      background-color: #0f172a;
+      color: #1e293b;
+      background-color: #f8fafc;
       padding: 40px 20px;
     }
     .email-wrapper {
       max-width: 600px;
       margin: 0 auto;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      background: #ffffff;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
     }
     .header {
-      background: linear-gradient(135deg, #334155 0%, #1e293b 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
       padding: 40px 30px;
       text-align: center;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     }
-    .logo {
-      width: 60px;
-      height: 60px;
+    .logo-container {
       margin: 0 auto 20px;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      width: 80px;
+      height: 80px;
+      background: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      font-weight: bold;
-      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
     }
     .header h1 {
       font-size: 28px;
       font-weight: 600;
-      color: #f1f5f9;
+      color: #ffffff;
       margin-bottom: 10px;
     }
     .status-badge {
       display: inline-block;
       padding: 8px 20px;
-      background: rgba(148, 163, 184, 0.2);
-      color: #94a3b8;
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
       border-radius: 20px;
       font-weight: 500;
       font-size: 13px;
-      border: 1px solid rgba(148, 163, 184, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
     .content {
       padding: 40px 30px;
     }
     .greeting {
       font-size: 16px;
-      color: #cbd5e1;
+      color: #475569;
       margin-bottom: 20px;
     }
     .greeting strong {
-      color: #f1f5f9;
+      color: #1e293b;
     }
     .message-box {
-      background: rgba(30, 41, 59, 0.6);
-      border-left: 3px solid #64748b;
+      background: #f1f5f9;
+      border-left: 4px solid #64748b;
       padding: 20px;
       margin: 25px 0;
       border-radius: 8px;
     }
     .message-box-title {
       font-size: 13px;
-      color: #94a3b8;
+      color: #64748b;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 12px;
     }
     .message-text {
-      color: #e2e8f0;
+      color: #334155;
       font-style: italic;
       font-size: 15px;
       line-height: 1.5;
     }
     .info-card {
-      background: rgba(30, 41, 59, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 25px;
       margin: 25px 0;
@@ -113,7 +116,7 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
     .info-row {
       display: flex;
       padding: 15px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid #e2e8f0;
     }
     .info-row:last-child {
       border-bottom: none;
@@ -124,18 +127,18 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
     }
     .info-label {
       font-weight: 600;
-      color: #94a3b8;
+      color: #64748b;
       min-width: 120px;
       font-size: 14px;
     }
     .info-value {
-      color: #e2e8f0;
+      color: #1e293b;
       flex: 1;
       font-size: 14px;
     }
     .conclusion {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(37, 99, 235, 0.1) 100%);
-      border: 1px solid rgba(59, 130, 246, 0.3);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%);
+      border: 2px solid #3b82f6;
       border-radius: 12px;
       padding: 20px;
       margin: 25px 0;
@@ -144,39 +147,39 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
     .conclusion-title {
       font-size: 18px;
       font-weight: 600;
-      color: #60a5fa;
+      color: #2563eb;
       margin-bottom: 8px;
     }
     .conclusion-text {
-      color: #cbd5e1;
+      color: #475569;
       font-size: 14px;
     }
     .footer-note {
-      color: #94a3b8;
+      color: #64748b;
       font-size: 14px;
       line-height: 1.6;
       margin-top: 25px;
     }
     .footer {
-      background: rgba(15, 23, 42, 0.6);
+      background: #f8fafc;
       padding: 30px;
       text-align: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid #e2e8f0;
     }
     .footer-brand {
       font-size: 20px;
       font-weight: 700;
-      color: #60a5fa;
+      color: #3b82f6;
       margin-bottom: 10px;
       letter-spacing: 0.5px;
     }
     .footer-text {
       font-size: 13px;
-      color: #64748b;
+      color: #94a3b8;
       margin-top: 5px;
     }
     .footer-link {
-      color: #60a5fa;
+      color: #3b82f6;
       text-decoration: none;
     }
     @media only screen and (max-width: 600px) {
@@ -201,7 +204,9 @@ function getRejectTemplate({ reporterName, messageText, adminName, reason, repor
 <body>
   <div class="email-wrapper">
     <div class="header">
-      <div class="logo">Q</div>
+      <div class="logo-container">
+        <img src="https://quik.id.vn/logo_quik.png" alt="Quik" class="logo" />
+      </div>
       <h1>Kết quả xử lý báo cáo</h1>
       <div style="margin-top: 15px;">
         <span class="status-badge">Không vi phạm</span>
@@ -284,88 +289,91 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
       line-height: 1.6;
-      color: #e2e8f0;
-      background-color: #0f172a;
+      color: #1e293b;
+      background-color: #f8fafc;
       padding: 40px 20px;
     }
     .email-wrapper {
       max-width: 600px;
       margin: 0 auto;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      background: #ffffff;
       border-radius: 16px;
       overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border: 1px solid #e2e8f0;
     }
     .header {
-      background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 100%);
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
       padding: 40px 30px;
       text-align: center;
-      border-bottom: 1px solid rgba(239, 68, 68, 0.3);
     }
-    .logo {
-      width: 60px;
-      height: 60px;
+    .logo-container {
       margin: 0 auto 20px;
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      width: 80px;
+      height: 80px;
+      background: white;
       border-radius: 50%;
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      font-weight: bold;
-      color: white;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+    .logo {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
     }
     .header h1 {
       font-size: 28px;
       font-weight: 600;
-      color: #f1f5f9;
+      color: #ffffff;
       margin-bottom: 10px;
     }
     .status-badge {
       display: inline-block;
       padding: 8px 20px;
-      background: rgba(239, 68, 68, 0.2);
-      color: #fca5a5;
+      background: rgba(255, 255, 255, 0.25);
+      color: #ffffff;
       border-radius: 20px;
       font-weight: 500;
       font-size: 13px;
-      border: 1px solid rgba(239, 68, 68, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.3);
     }
     .content {
       padding: 40px 30px;
     }
     .greeting {
       font-size: 16px;
-      color: #cbd5e1;
+      color: #475569;
       margin-bottom: 20px;
     }
     .greeting strong {
-      color: #f1f5f9;
+      color: #1e293b;
     }
     .message-box {
-      background: rgba(127, 29, 29, 0.2);
-      border-left: 3px solid #ef4444;
+      background: #fef2f2;
+      border-left: 4px solid #ef4444;
       padding: 20px;
       margin: 25px 0;
       border-radius: 8px;
     }
     .message-box-title {
       font-size: 13px;
-      color: #fca5a5;
+      color: #dc2626;
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 12px;
     }
     .message-text {
-      color: #fecaca;
+      color: #991b1b;
       font-style: italic;
       font-size: 15px;
       line-height: 1.5;
     }
     .success-box {
-      background: linear-gradient(135deg, rgba(34, 197, 94, 0.15) 0%, rgba(22, 163, 74, 0.15) 100%);
-      border: 1px solid rgba(34, 197, 94, 0.3);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08) 0%, rgba(22, 163, 74, 0.08) 100%);
+      border: 2px solid #22c55e;
       border-radius: 12px;
       padding: 25px;
       margin: 25px 0;
@@ -374,16 +382,16 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
     .success-title {
       font-size: 18px;
       font-weight: 600;
-      color: #4ade80;
+      color: #16a34a;
       margin-bottom: 10px;
     }
     .success-text {
-      color: #86efac;
+      color: #15803d;
       font-size: 15px;
     }
     .info-card {
-      background: rgba(30, 41, 59, 0.4);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 12px;
       padding: 25px;
       margin: 25px 0;
@@ -391,7 +399,7 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
     .info-row {
       display: flex;
       padding: 15px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid #e2e8f0;
     }
     .info-row:last-child {
       border-bottom: none;
@@ -402,51 +410,51 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
     }
     .info-label {
       font-weight: 600;
-      color: #94a3b8;
+      color: #64748b;
       min-width: 120px;
       font-size: 14px;
     }
     .info-value {
-      color: #e2e8f0;
+      color: #1e293b;
       flex: 1;
       font-size: 14px;
     }
     .footer-note {
-      color: #94a3b8;
+      color: #64748b;
       font-size: 14px;
       line-height: 1.6;
       margin-top: 25px;
     }
     .thank-you {
-      background: rgba(59, 130, 246, 0.1);
-      border: 1px solid rgba(59, 130, 246, 0.2);
+      background: linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(37, 99, 235, 0.08) 100%);
+      border: 2px solid #3b82f6;
       border-radius: 8px;
       padding: 15px;
       margin-top: 20px;
       text-align: center;
-      color: #93c5fd;
+      color: #2563eb;
       font-weight: 500;
     }
     .footer {
-      background: rgba(15, 23, 42, 0.6);
+      background: #f8fafc;
       padding: 30px;
       text-align: center;
-      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      border-top: 1px solid #e2e8f0;
     }
     .footer-brand {
       font-size: 20px;
       font-weight: 700;
-      color: #60a5fa;
+      color: #3b82f6;
       margin-bottom: 10px;
       letter-spacing: 0.5px;
     }
     .footer-text {
       font-size: 13px;
-      color: #64748b;
+      color: #94a3b8;
       margin-top: 5px;
     }
     .footer-link {
-      color: #60a5fa;
+      color: #3b82f6;
       text-decoration: none;
     }
     @media only screen and (max-width: 600px) {
@@ -471,7 +479,9 @@ function getApproveTemplate({ reporterName, messageText, adminName, reason, repo
 <body>
   <div class="email-wrapper">
     <div class="header">
-      <div class="logo">Q</div>
+      <div class="logo-container">
+        <img src="https://quik.id.vn/images/logo_quik.png" alt="Quik" class="logo" />
+      </div>
       <h1>Kết quả xử lý báo cáo</h1>
       <div style="margin-top: 15px;">
         <span class="status-badge">Đã xử lý vi phạm</span>
