@@ -7,6 +7,7 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import dotenv from "dotenv";
 import jwt from "jsonwebtoken";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import reportRoutes from './routes/reportRoutes.js';
 
 dotenv.config();
 
@@ -509,6 +510,8 @@ app.get("/api/list-models", async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 });
+
+app.use("/api/reports", reportRoutes)
 
 // ============= SOCKET.IO =============
 
