@@ -118,7 +118,7 @@ function renderRejectEmail({ reporterName, messageText, adminName, reason, repor
         <td>
           <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;border-radius:12px;margin-bottom:28px;">
             <tr>
-              <td style="padding:20px;">
+              <td style="padding:20px">
                 <div style="font-size:11px;font-weight:600;color:#64748b;text-transform:uppercase;margin-bottom:10px;letter-spacing:0.5px;">
                   Nội dung bạn đã báo cáo
                 </div>
@@ -136,9 +136,9 @@ function renderRejectEmail({ reporterName, messageText, adminName, reason, repor
             <tr>
               <td style="padding-left:16px;">
                 <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:6px;">
-                  Kết quả: Giữ nguyên nội dung
+                  Lý do:
                 </div>
-                <p style="margin:0;font-size:14px;color:#64748b;line-height:1.5;">
+                <p style="margin:0;font-size:14px;color:#64748b;">
                   ${escapeHtml(reason || "Nội dung này không vi phạm chính sách của chúng tôi.")}
                 </p>
               </td>
@@ -149,7 +149,7 @@ function renderRejectEmail({ reporterName, messageText, adminName, reason, repor
       <tr>
         <td>
           <div style="font-size:13px;color:#94a3b8;">
-            Người duyệt: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}
+            Người xử lý: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}
           </div>
         </td>
       </tr>
@@ -157,7 +157,7 @@ function renderRejectEmail({ reporterName, messageText, adminName, reason, repor
   `;
 
   return baseLayout({
-    title: "Báo cáo không vi phạm",
+    title: "Kết quả xem xét báo cáo",
     contentHtml: content,
     isApprove: false
   });
@@ -202,7 +202,7 @@ function renderApproveEmail({ reporterName, messageText, adminName, reason, repo
             <tr>
               <td style="padding-left:16px;">
                 <div style="font-size:15px;font-weight:700;color:#0f172a;margin-bottom:6px;">
-                  Kết quả: Đã xử lý vi phạm
+                  Lý do:
                 </div>
                 <p style="margin:0;font-size:14px;color:#64748b;line-height:1.5;">
                   ${escapeHtml(reason || "Vi phạm tiêu chuẩn cộng đồng.")}
@@ -215,7 +215,7 @@ function renderApproveEmail({ reporterName, messageText, adminName, reason, repo
       <tr>
         <td>
           <div style="font-size:13px;color:#94a3b8;">
-            Người duyệt: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}
+            Người xử lý: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}
           </div>
         </td>
       </tr>
@@ -223,7 +223,7 @@ function renderApproveEmail({ reporterName, messageText, adminName, reason, repo
   `;
 
   return baseLayout({
-    title: "Đã xử lý vi phạm",
+    title: "Báo cáo của bạn đã được xử lý",
     contentHtml: content,
     isApprove: true
   });
@@ -253,8 +253,8 @@ export async function sendReportResultEmail({
 
     const isRejected = action === "reject";
     const subject = isRejected
-      ? "Kết quả báo cáo: Không vi phạm"
-      : "Kết quả báo cáo: Đã xử lý vi phạm";
+      ? "Thông báo kết quả báo cáo từ Quik"
+      : "Quik đã xử lý nội dung bạn báo cáo";
 
     const html = isRejected
       ? renderRejectEmail({
@@ -274,7 +274,7 @@ export async function sendReportResultEmail({
         });
 
     const data = await resend.emails.send({
-      from: "Quik <admin@quik.id.vn>",
+      from: "Quik <support@quik.id.vn>",
       to: [reporterEmail],
       subject,
       html,
