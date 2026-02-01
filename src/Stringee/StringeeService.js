@@ -109,21 +109,6 @@ export class StringeeService {
         return { token, expiresIn: 3600 };
     }
 
-    async getRoomToken(req, res, next) {
-        try {
-            const { roomId, uid } = req.body;
-            
-            if (!roomId || !uid) {
-                throw new AppError("roomId and uid are required", 400);
-            }
-
-            const result = stringeeService.generateRoomToken(roomId, uid);
-            res.json({ room_token: result.token, expiresIn: result.expiresIn });
-        } catch (error) {
-            next(error);
-        }
-    }
-
     async listRooms() {
         const restToken = this.generateRestToken();
 
