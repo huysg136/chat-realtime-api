@@ -50,50 +50,6 @@ src/
 server.js         # Application Entry Point
 ```
 
-## 🔧 Setup & Installation
-
-1. **Clone the repository**
-   ```bash
-   git clone <repo-url>
-   cd chat-realtime-api
-   ```
-
-2. **Install dependencies**
-   ```bash
-   npm install
-   ```
-
-3. **Configure Environment Variables**
-   Create a `.env` file in the root directory:
-   ```env
-   # App
-   PORT=3000
-
-   # Stringee (Video Call)
-   STRINGEE_API_KEY_SID=your_sid
-   STRINGEE_API_KEY_SECRET=your_secret
-
-   # Cloudflare R2 (Storage)
-   R2_ACCOUNT_ID=your_account_id
-   R2_ACCESS_KEY_ID=your_access_key
-   R2_SECRET_ACCESS_KEY=your_secret_key
-   R2_BUCKET_NAME=your_bucket
-   R2_PUBLIC_DOMAIN=your_public_domain
-
-   # AI Services
-   GROQ_API_KEY=your_groq_key
-   GEMINI_API_KEY=your_gemini_key
-
-   # Email
-   RESEND_API_KEY=your_resend_key
-   ```
-
-4. **Start the Server**
-   ```bash
-   npm start
-   ```
-
----
 
 ## 🔗 API Overview
 
