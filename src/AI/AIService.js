@@ -7,38 +7,54 @@ export class AIService {
 
         const API_KEY = config.ai.groqApiKey;
 
-        const response = await fetch(
-            "https://api.groq.com/openai/v1/chat/completions",
-            {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${API_KEY}`
-                },
-                body: JSON.stringify({
-                    model: "llama-3.3-70b-versatile",
-                    messages: [{ role: "user", content: prompt }]
-                })
+        // Ưu tiên từ cao xuống thấp
+        const models = [
+            "meta-llama/llama-4-maverick-17b-128e-instruct", // Llama 4 mạnh nhất
+            "meta-llama/llama-4-scout-17b-16e-instruct",     // Llama 4 nhẹ hơn
+            "llama-3.3-70b-versatile",                        // Llama 3.3 70b
+            "llama-3.1-8b-instant",                           // Fallback cuối
+        ];
+
+        for (const model of models) {
+            try {
+                const response = await fetch(
+                    "https://api.groq.com/openai/v1/chat/completions",
+                    {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "Authorization": `Bearer ${API_KEY}`
+                        },
+                        body: JSON.stringify({
+                            model,
+                            messages: [{ role: "user", content: prompt }]
+                        })
+                    }
+                );
+
+                // Rate limit hoặc hết quota → thử model tiếp
+                if (response.status === 429) {
+                    continue;
+                }
+
+                const data = await response.json();
+
+                // Model báo lỗi (ví dụ hết token ngày) → thử tiếp
+                if (data.error) {
+                    continue;
+                }
+
+                const answer = data.choices?.[0]?.message?.content;
+                if (!answer) continue;
+
+                return { answer };
+
+            } catch (err) {
+                continue;
             }
-        );
-
-        if (response.status === 429) {
-            throw new AppError("Rate limit exceeded", 429);
         }
 
-        const data = await response.json();
-
-        if (data.error) {
-            throw new AppError(data.error.message || "API_ERROR", 400);
-        }
-
-        const answer = data.choices?.[0]?.message?.content;
-
-        if (!answer) {
-            throw new AppError("No response from Groq", 500);
-        }
-
-        return { answer };
+        throw new AppError("All Groq models exhausted", 429);
     }
 
     async askGemini(prompt) {
