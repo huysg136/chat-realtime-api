@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { config } from "../Config/index.js";
+import { config } from "../config/index.js";
 import { AppError } from "../utils/AppError.js";
 
 const HEADER = {
