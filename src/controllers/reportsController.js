@@ -1,5 +1,5 @@
-import { reportsService } from "./ReportsService.js";
-import { AppError } from "../Exception/globalErrorHandler.js";
+import { reportsService } from "../services/reportsService.js";
+import { AppError } from "../utils/AppError.js";
 
 export class ReportsController {
     async notify(req, res, next) {

@@ -1,5 +1,5 @@
-import { stringeeService } from "./StringeeService.js";
-import { AppError } from "../Exception/globalErrorHandler.js";
+import { stringeeService } from "../services/stringeeService.js";
+import { AppError } from "../utils/AppError.js";
 
 export class StringeeController {
     getClientToken(req, res, next) {

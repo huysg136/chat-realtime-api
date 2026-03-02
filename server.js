@@ -2,14 +2,14 @@ import express from "express";
 import http from "http";
 import cors from "cors";
 import { Server } from "socket.io";
-import { config } from "./src/Config/index.js";
-import { globalErrorHandler } from "./src/Exception/globalErrorHandler.js";
+import { config } from "./src/config/index.js";
+import { globalErrorHandler } from "./src/middlewares/errorHandler.js";
 
 // routes
-import stringeeRoutes from "./src/Stringee/StringeeRoutes.js";
-import uploadRoutes from "./src/Upload/UploadRoutes.js";
-import aiRoutes from "./src/AI/AIRoutes.js";
-import reportRoutes from "./src/Reports/ReportsRoutes.js";
+import stringeeRoutes from "./src/routes/stringeeRoutes.js";
+import uploadRoutes from "./src/routes/uploadRoutes.js";
+import aiRoutes from "./src/routes/aiRoutes.js";
+import reportRoutes from "./src/routes/reportsRoutes.js";
 
 const app = express();
 const server = http.createServer(app);

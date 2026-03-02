@@ -1,5 +1,5 @@
-import { config } from "../Config/index.js";
-import { AppError } from "../Exception/globalErrorHandler.js";
+import { config } from "../config/index.js";
+import { AppError } from "../utils/AppError.js";
 
 export class AIService {
     async askGroq(prompt) {

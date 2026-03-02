@@ -1,4 +1,4 @@
-import { uploadService } from "./UploadService.js";
+import { uploadService } from "../services/uploadService.js";
 
 export class UploadController {
     async getUploadUrl(req, res, next) {

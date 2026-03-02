@@ -1,4 +1,4 @@
-import { aiService } from "./AIService.js";
+import { aiService } from "../services/aiService.js";
 
 export class AIController {
     async askGroq(req, res, next) {

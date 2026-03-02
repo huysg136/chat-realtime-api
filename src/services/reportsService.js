@@ -1,36 +1,36 @@
 import { Resend } from "resend";
-import { AppError } from "../Exception/globalErrorHandler.js";
+import { AppError } from "../utils/AppError.js";
 
 // ==================== HELPERS ====================
 
 function escapeHtml(str = "") {
-  return String(str)
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;");
+    return String(str)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
 }
 
 function truncateText(text, maxLength = 160) {
-  if (!text) return "";
-  const t = String(text);
-  return t.length > maxLength ? t.slice(0, maxLength) + "..." : t;
+    if (!text) return "";
+    const t = String(text);
+    return t.length > maxLength ? t.slice(0, maxLength) + "..." : t;
 }
 
 function viDate(dateInput) {
-  try {
-    const d = dateInput ? new Date(dateInput) : new Date();
-    return d.toLocaleDateString("vi-VN");
-  } catch {
-    return new Date().toLocaleDateString("vi-VN");
-  }
+    try {
+        const d = dateInput ? new Date(dateInput) : new Date();
+        return d.toLocaleDateString("vi-VN");
+    } catch {
+        return new Date().toLocaleDateString("vi-VN");
+    }
 }
 
 function baseLayout({ title, contentHtml, isApprove = false }) {
-  const brandColor = isApprove ? "#ef4444" : "#3b82f6";
+    const brandColor = isApprove ? "#ef4444" : "#3b82f6";
 
-  return `
+    return `
 <!doctype html>
 <html lang="vi">
 <head>
@@ -80,7 +80,7 @@ function baseLayout({ title, contentHtml, isApprove = false }) {
 }
 
 function renderRejectEmail({ reporterName, messageText, adminName, reason, reportDate }) {
-  const content = `
+    const content = `
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td><p style="margin:0 0 16px;font-size:16px;line-height:1.5;">Xin chào <strong>${escapeHtml(reporterName)}</strong>,</p></td></tr>
       <tr><td><p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#475569;">Cảm ơn bạn đã báo cáo nội dung vào ngày ${escapeHtml(reportDate)}. Sau khi đội ngũ quản trị xem xét, chúng tôi chưa tìm thấy bằng chứng vi phạm quy chuẩn cộng đồng.</p></td></tr>
@@ -89,11 +89,11 @@ function renderRejectEmail({ reporterName, messageText, adminName, reason, repor
       <tr><td><div style="font-size:13px;color:#94a3b8;">Người xử lý: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}</div></td></tr>
     </table>
   `;
-  return baseLayout({ title: "Kết quả xem xét báo cáo", contentHtml: content, isApprove: false });
+    return baseLayout({ title: "Kết quả xem xét báo cáo", contentHtml: content, isApprove: false });
 }
 
 function renderApproveEmail({ reporterName, messageText, adminName, reason, reportDate, action }) {
-  const content = `
+    const content = `
     <table width="100%" cellpadding="0" cellspacing="0">
       <tr><td><p style="margin:0 0 16px;font-size:16px;line-height:1.5;">Xin chào <strong>${escapeHtml(reporterName)}</strong>,</p></td></tr>
       <tr><td><p style="margin:0 0 28px;font-size:15px;line-height:1.6;color:#475569;">Cảm ơn bạn đã báo cáo nội dung vào ngày ${escapeHtml(reportDate)}. Sau khi đội ngũ quản trị xem xét, chúng tôi xác nhận nội dung này đã <strong>vi phạm quy định</strong> của Quik.</p></td></tr>
@@ -102,45 +102,45 @@ function renderApproveEmail({ reporterName, messageText, adminName, reason, repo
       <tr><td><div style="font-size:13px;color:#94a3b8;">Người xử lý: <strong>${escapeHtml(adminName)}</strong> • ${escapeHtml(viDate())}</div></td></tr>
     </table>
   `;
-  return baseLayout({ title: "Báo cáo của bạn đã được xử lý", contentHtml: content, isApprove: true });
+    return baseLayout({ title: "Báo cáo của bạn đã được xử lý", contentHtml: content, isApprove: true });
 }
 
 export class ReportsService {
-  constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
-  }
-
-  async sendReportResultEmail(params) {
-    if (!process.env.RESEND_API_KEY) {
-      throw new AppError("Missing RESEND_API_KEY", 500);
-    }
-    const { reporterEmail, reporterName, messageText, action, adminName, reason, reportDate } = params;
-
-    if (!reporterEmail) {
-      throw new AppError("Missing reporterEmail", 400);
+    constructor() {
+        this.resend = new Resend(process.env.RESEND_API_KEY);
     }
 
-    const safeMessage = truncateText(messageText, 160);
-    const safeReportDate = reportDate || viDate();
-    const isRejected = action === "reject";
-    const subject = isRejected ? "Thông báo kết quả báo cáo từ Quik" : "Quik đã xử lý nội dung bạn báo cáo";
+    async sendReportResultEmail(params) {
+        if (!process.env.RESEND_API_KEY) {
+            throw new AppError("Missing RESEND_API_KEY", 500);
+        }
+        const { reporterEmail, reporterName, messageText, action, adminName, reason, reportDate } = params;
 
-    const html = isRejected
-      ? renderRejectEmail({ reporterName: reporterName || "bạn", messageText: safeMessage, adminName: adminName || "Admin", reason, reportDate: safeReportDate })
-      : renderApproveEmail({ reporterName: reporterName || "bạn", messageText: safeMessage, adminName: adminName || "Admin", reason, reportDate: safeReportDate, action: action || "delete_only" });
+        if (!reporterEmail) {
+            throw new AppError("Missing reporterEmail", 400);
+        }
 
-    try {
-      const data = await this.resend.emails.send({
-        from: "Quik <support@quik.id.vn>",
-        to: [reporterEmail],
-        subject,
-        html,
-      });
-      return { success: true, data };
-    } catch (error) {
-      throw new AppError(`Failed to send email: ${error.message}`, 500);
+        const safeMessage = truncateText(messageText, 160);
+        const safeReportDate = reportDate || viDate();
+        const isRejected = action === "reject";
+        const subject = isRejected ? "Thông báo kết quả báo cáo từ Quik" : "Quik đã xử lý nội dung bạn báo cáo";
+
+        const html = isRejected
+            ? renderRejectEmail({ reporterName: reporterName || "bạn", messageText: safeMessage, adminName: adminName || "Admin", reason, reportDate: safeReportDate })
+            : renderApproveEmail({ reporterName: reporterName || "bạn", messageText: safeMessage, adminName: adminName || "Admin", reason, reportDate: safeReportDate, action: action || "delete_only" });
+
+        try {
+            const data = await this.resend.emails.send({
+                from: "Quik <support@quik.id.vn>",
+                to: [reporterEmail],
+                subject,
+                html,
+            });
+            return { success: true, data };
+        } catch (error) {
+            throw new AppError(`Failed to send email: ${error.message}`, 500);
+        }
     }
-  }
 }
 
 export const reportsService = new ReportsService();
