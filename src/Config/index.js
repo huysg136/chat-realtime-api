@@ -22,7 +22,6 @@ export const config = {
   },
 };
 
-// Initialize S3 Client singleton
 export const r2Client = new S3Client({
   region: "auto",
   endpoint: `https://${config.r2.accountId}.r2.cloudflarestorage.com`,
