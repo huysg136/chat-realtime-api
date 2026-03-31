@@ -41,13 +41,18 @@ Built with a **Clean, Modular Architecture** for scalability and maintainability
 
 ```bash
 src/
-├── AI/           # AI Controllers & Services (Gemini/Groq)
-├── Config/       # Centralized Configuration & Env Validation
-├── Exception/    # Global Error Handling
-├── Reports/      # Email Reporting System
-├── Stringee/     # Video Call Token & Room Logic
-└── Upload/       # R2 Storage & Presigned URLs
-server.js         # Application Entry Point
+├── AI/               # AI Services & Large Language Models
+│   ├── geminiService.js   # Google Gemini for text refinement
+│   └── groqService.js     # Llama 3 for chatbot responses
+├── Config/           # Centralized Env & Security Validation
+├── Controllers/      # Request Handling Logic
+├── Exception/        # Global Error & Panic Handling Middleware
+├── Reports/          # Resend Email Notification System
+├── Routes/           # API Endpoint Definitions
+├── Services/         # Modular Business Logic (Media, etc.)
+├── Stringee/         # VoIP Signaling & JWT Token Logic
+└── Upload/           # Cloudflare R2 / S3 Storage Logic
+server.js             # Application Entry Point
 ```
 
 
