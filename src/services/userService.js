@@ -89,7 +89,7 @@ function renderNewUserEmail({ displayName, email, uid, username, photoURL }) {
                 <td style="padding:6px 0;font-size:14px;color:#1e293b;">${escapeHtml(displayName || "—")}</td>
               </tr>
               <tr>
-                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;">Username</td>
+                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;">Quik ID</td>
                 <td style="padding:6px 0;font-size:14px;color:#1e293b;">@${escapeHtml(username || "—")}</td>
               </tr>
               <tr>
