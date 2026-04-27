@@ -22,6 +22,20 @@ export class UsersController {
       next(err);
     }
   }
+
+  async searchUsers(req, res, next) {
+    try {
+      const { q } = req.query;
+      const results = await usersService.searchUsers(q);
+      
+      res.status(200).json({
+        success: true,
+        data: results,
+      });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 export const usersController = new UsersController();

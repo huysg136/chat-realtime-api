@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { AppError } from "../utils/AppError.js";
+import fetch from "node-fetch";
 
 // ==================== HELPERS ====================
 
@@ -135,6 +136,43 @@ export class UsersService {
       return { success: true, data };
     } catch (error) {
       throw new AppError(`Failed to send email: ${error.message}`, 500);
+    }
+  }
+
+  async searchUsers(query) {
+    if (!query) return [];
+    
+    const projectId = "chat-realtime-54e66";
+    const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/users`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new AppError(`Firestore REST API error: ${response.statusText}`, 500);
+      }
+      const data = await response.json();
+      
+      if (!data.documents) return [];
+      
+      const users = data.documents.map(doc => {
+        const fields = doc.fields || {};
+        return {
+          uid: fields.uid?.stringValue || "",
+          displayName: fields.displayName?.stringValue || "",
+          username: fields.username?.stringValue || "",
+          email: fields.email?.stringValue || "",
+          photoURL: fields.photoURL?.stringValue || "",
+        };
+      });
+      
+      const lowerQuery = query.toLowerCase();
+      return users.filter(u => 
+        (u.displayName && u.displayName.toLowerCase().includes(lowerQuery)) || 
+        (u.username && u.username.toLowerCase().includes(lowerQuery)) || 
+        (u.email && u.email.toLowerCase().includes(lowerQuery))
+      );
+    } catch (error) {
+      throw new AppError(`Failed to search users: ${error.message}`, 500);
     }
   }
 }
