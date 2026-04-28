@@ -1,6 +1,5 @@
 import { db, admin } from "../config/firebase.js";
-import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL, incrCache } from "../utils/cache.js";
-import { notifyUnreadCount } from "../services/notificationService.js";
+import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
 
 const QUOTA_LIMIT = {
   free: 100 * 1024 * 1024,
@@ -323,8 +322,7 @@ export const likePost = async (req, res) => {
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Gửi thông báo realtime qua Socket + Redis
-        await notifyUnreadCount(req.app.get("io"), postData.uid);
+        // Đã gỡ bỏ notifyUnreadCount
       }
     }
 
@@ -384,8 +382,7 @@ export const commentPost = async (req, res) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // Gửi thông báo realtime qua Socket + Redis
-      await notifyUnreadCount(req.app.get("io"), targetUid);
+      // Đã gỡ bỏ notifyUnreadCount
     }
 
     // Invalidate Feed Cache cho người Comment
@@ -440,8 +437,7 @@ export const likeComment = async (req, res) => {
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Gửi thông báo realtime qua Socket + Redis
-        await notifyUnreadCount(req.app.get("io"), commentData.uid);
+        // Đã gỡ bỏ notifyUnreadCount
       }
     }
 

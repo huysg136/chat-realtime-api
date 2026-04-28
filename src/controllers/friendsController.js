@@ -1,6 +1,5 @@
 import { db, admin } from "../config/firebase.js";
-import { getCache, setCache, deleteCache, CACHE_TTL, incrCache, decrCache } from "../utils/cache.js";
-import { notifyUnreadCount, resetUnreadCount, decrementUnreadCount } from "../services/notificationService.js";
+import { getCache, setCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
 
 const getUserData = async (uid) => {
   try {
@@ -56,8 +55,7 @@ export const sendFriendRequest = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // INCR số thông báo chưa đọc + Gửi Socket
-    await notifyUnreadCount(req.app.get("io"), toUid);
+    // Đã gỡ bỏ notifyUnreadCount
 
     // Invalidate Cache cho người gửi
     await deleteCache(`suggestions:${fromUid}`);
@@ -104,8 +102,7 @@ export const acceptFriendRequest = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // INCR số thông báo chưa đọc + Gửi Socket
-    await notifyUnreadCount(req.app.get("io"), fromUid);
+    // Đã gỡ bỏ notifyUnreadCount
 
     // Invalidate Cache
     await Promise.all([
@@ -209,10 +206,7 @@ export const markNotificationAsRead = async (req, res) => {
       isRead: true,
     });
 
-    // Giảm số lượng trong Redis + Gửi Socket
-    if (uid) {
-      await decrementUnreadCount(req.app.get("io"), uid);
-    }
+    // Đã gỡ bỏ decrementUnreadCount
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -234,8 +228,7 @@ export const markAllNotificationsAsRead = async (req, res) => {
     });
     await batch.commit();
 
-    // Reset số lượng trong Redis về 0 + Gửi Socket
-    await resetUnreadCount(req.app.get("io"), uid);
+    // Đã gỡ bỏ resetUnreadCount
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -248,22 +241,12 @@ export const getUnreadCount = async (req, res) => {
     const { uid } = req.query;
     if (!uid) return res.status(400).json({ success: false });
 
-    const cacheKey = `unread_count:${uid}`;
-    let count = await getCache(cacheKey);
-
-    // Nếu Redis chưa có (null), query Firestore lần đầu
-    if (count === null) {
-      const snapshot = await db.collection("notifications")
-        .where("receiverUid", "==", uid)
-        .where("isRead", "==", false)
-        .get();
-      
-      count = snapshot.size;
-      // Lưu lại vào Redis
-      await setCache(cacheKey, count, 86400); // 24h
-    }
-
-    res.status(200).json({ success: true, count: parseInt(count) || 0 });
+    const snapshot = await db.collection("notifications")
+      .where("receiverUid", "==", uid)
+      .where("isRead", "==", false)
+      .get();
+    
+    res.status(200).json({ success: true, count: snapshot.size });
   } catch (error) {
     res.status(500).json({ success: false });
   }

@@ -1,28 +1,12 @@
 import express from "express";
 import http from "http";
 import cors from "cors";
-import { Server } from "socket.io";
+// import { Server } from "socket.io";
 import { config } from "./src/config/index.js";
 import { globalErrorHandler } from "./src/middlewares/errorHandler.js";
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
-
-// Gắn io vào app để dùng ở các controller
-app.set("io", io);
-
-// Socket connection logic
-io.on("connection", (socket) => {
-  socket.on("join", (uid) => {
-    if (uid) {
-      socket.join(uid);
-      console.log(`User ${uid} joined their notification room`);
-    }
-  });
-});
 
 // routes
 import stringeeRoutes from "./src/routes/stringeeRoutes.js";
