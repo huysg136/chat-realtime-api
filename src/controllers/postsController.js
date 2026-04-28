@@ -1,4 +1,5 @@
 import { db, admin } from "../config/firebase.js";
+import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
 
 const QUOTA_LIMIT = {
   free: 100 * 1024 * 1024,
@@ -9,9 +10,17 @@ const QUOTA_LIMIT = {
 
 const getUserData = async (uid) => {
   try {
-    const snapshot = await db.collection("users").where("uid", "==", uid).get();
+    const cacheKey = `user_metadata:${uid}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    // Sử dụng doc(uid) để truy cập trực tiếp bằng ID (nhanh hơn query)
+    const snapshot = await db.collection("users").where("uid", "==", uid).limit(1).get();
     if (snapshot.empty) return null;
-    return { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+
+    const userData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    await setCache(cacheKey, userData, CACHE_TTL.USER_METADATA);
+    return userData;
   } catch (error) {
     return null;
   }
@@ -19,6 +28,14 @@ const getUserData = async (uid) => {
 
 const getFriendUids = async (uid) => {
   try {
+    const cacheKey = `friends:${uid}`;
+    const cached = await getCache(cacheKey);
+    if (cached) {
+      console.log(`[Cache] HIT friends for user: ${uid}`);
+      return cached;
+    }
+
+    console.log(`[Cache] MISS friends for user: ${uid}. Fetching from Firestore...`);
     const snapshot = await db.collection("friends")
       .where("users", "array-contains", uid)
       .get();
@@ -29,6 +46,8 @@ const getFriendUids = async (uid) => {
       const other = data.users.find((u) => u !== uid);
       if (other) uids.push(other);
     });
+
+    await setCache(cacheKey, uids, CACHE_TTL.FRIENDS_LIST);
     return uids;
   } catch (error) {
     return [];
@@ -109,6 +128,14 @@ export const createPost = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
+    // Cập nhật Timestamp toàn cục vào Redis để tối ưu checkNewPosts
+    const now = Date.now();
+    await setCache("feed:global:latest_post_time", now, CACHE_TTL.GLOBAL_TIMESTAMP);
+
+    // Invalidate author's feed cache
+    const feedCacheKey = `feed:${uid}:main`;
+    await deleteCache(feedCacheKey);
+
     res.status(201).json({ success: true, postId: postRef.id });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -117,10 +144,27 @@ export const createPost = async (req, res) => {
 
 export const getFeed = async (req, res) => {
   try {
-    const { userUid, filterUserId, searchQuery } = req.query;
+    const { userUid, filterUserId, searchQuery, skipCache } = req.query;
 
     if (!userUid) {
       return res.status(400).json({ success: false, message: "Missing userUid" });
+    }
+
+    const isMainFeed = !filterUserId && !searchQuery;
+    const feedCacheKey = `feed:${userUid}:main`;
+
+    if (isMainFeed && !skipCache) {
+      const cachedFeed = await getCache(feedCacheKey);
+      if (cachedFeed) {
+        console.log(`[Cache] HIT Main Feed for user: ${userUid}`);
+        return res.status(200).json({ success: true, posts: cachedFeed, fromCache: true });
+      }
+    }
+
+    if (isMainFeed) {
+      console.log(`[Cache] MISS Main Feed for user: ${userUid}. Computing...`);
+    } else {
+      console.log(`[Query] Fetching Profile/Search for user: ${userUid}`);
     }
 
     const friendUids = await getFriendUids(userUid);
@@ -140,13 +184,39 @@ export const getFeed = async (req, res) => {
     const snapshot = await queryRef.get();
     const rawPosts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
 
-    // Fetch all users to get roles/premium for scoring
-    const usersSnapshot = await db.collection("users").get();
-    const allUsers = {};
-    usersSnapshot.docs.forEach((doc) => {
-      const data = doc.data();
-      if (data.uid) allUsers[data.uid] = data;
+    // Optimization: Bulk fetch metadata from cache
+    const authorUids = [...new Set(rawPosts.map((p) => p.uid))];
+    const cacheKeys = authorUids.map((uid) => `user_metadata:${uid}`);
+    const cachedMetadata = await getMultipleCache(cacheKeys);
+
+    const authorMetadataMap = {};
+    const missingUids = [];
+
+    authorUids.forEach((uid, index) => {
+      if (cachedMetadata[index]) {
+        authorMetadataMap[uid] = cachedMetadata[index];
+      } else {
+        missingUids.push(uid);
+      }
     });
+
+    // 5. Fetch missing user metadata using 'in' query (Tối ưu hơn query lẻ)
+    if (missingUids.length > 0) {
+      // Chia nhỏ mảng nếu missingUids > 30 (limit của Firebase 'in')
+      const chunks = [];
+      for (let i = 0; i < missingUids.length; i += 30) {
+        chunks.push(missingUids.slice(i, i + 30));
+      }
+
+      await Promise.all(chunks.map(async (chunk) => {
+        const snapshot = await db.collection("users").where("uid", "in", chunk).get();
+        snapshot.forEach(doc => {
+          const data = { id: doc.id, ...doc.data() };
+          authorMetadataMap[data.uid] = data;
+          setCache(`user_metadata:${data.uid}`, data, CACHE_TTL.USER_METADATA);
+        });
+      }));
+    }
 
     // Filter by Privacy & Search Query
     const scoredPosts = rawPosts
@@ -163,34 +233,47 @@ export const getFeed = async (req, res) => {
         // Search filter
         if (!searchQuery) return true;
         const contentMatch = post.content?.toLowerCase().includes(searchQuery.toLowerCase());
-        const author = allUsers[post.uid] || {};
+        const author = authorMetadataMap[post.uid] || {};
         const authorName = author.displayName || post.displayName || "";
         const authorMatch = authorName.toLowerCase().includes(searchQuery.toLowerCase());
         return contentMatch || authorMatch;
       })
       .map((post) => {
-        const author = allUsers[post.uid] || {};
+        const author = authorMetadataMap[post.uid] || {};
         const score = computeScore({ post, userUid, friendUids, author });
         return { ...post, _score: score };
       });
 
-    // Sort
-    if (filterUserId) {
-      scoredPosts.sort((a, b) => {
-        const aTime = a.createdAt?._seconds ?? 0;
-        const bTime = b.createdAt?._seconds ?? 0;
-        return bTime - aTime;
-      });
-    } else {
-      scoredPosts.sort((a, b) => {
-        if (Math.abs(b._score - a._score) > 0.001) return b._score - a._score;
-        const aTime = a.createdAt?._seconds ?? 0;
-        const bTime = b.createdAt?._seconds ?? 0;
-        return bTime - aTime;
-      });
+    // Fetch Top Comments for each post (Gom nhóm để tối ưu)
+    const postIds = scoredPosts.map(p => p.id);
+    const topCommentsMap = {};
+
+    if (postIds.length > 0) {
+      await Promise.all(postIds.map(async (pid) => {
+        const cSnap = await db.collection("comments")
+          .where("postId", "==", pid)
+          .where("parentId", "==", null)
+          .orderBy("createdAt", "desc")
+          .limit(1)
+          .get();
+        
+        if (!cSnap.empty) {
+          topCommentsMap[pid] = { id: cSnap.docs[0].id, ...cSnap.docs[0].data() };
+        }
+      }));
     }
 
-    res.status(200).json({ success: true, posts: scoredPosts });
+    const finalPosts = scoredPosts.map(post => ({
+      ...post,
+      topComment: topCommentsMap[post.id] || null
+    }));
+
+    // Cache the final scored feed (Only for Main Feed)
+    if (isMainFeed) {
+      await setCache(feedCacheKey, finalPosts, CACHE_TTL.FEED_MAIN);
+    }
+
+    res.status(200).json({ success: true, posts: finalPosts });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -238,6 +321,9 @@ export const likePost = async (req, res) => {
         });
       }
     }
+
+    // Invalidate Feed Cache cho người Like
+    await deleteCache(`feed:${uid}:main`);
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -292,6 +378,9 @@ export const commentPost = async (req, res) => {
       });
     }
 
+    // Invalidate Feed Cache cho người Comment
+    await deleteCache(`feed:${uid}:main`);
+
     res.status(201).json({ success: true, commentId: commentRef.id });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -340,6 +429,104 @@ export const likeComment = async (req, res) => {
         });
       }
     }
+
+    // Invalidate Feed Cache cho người Like Comment
+    await deleteCache(`feed:${uid}:main`);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// Chỉ trả về số lượng bài mới, không query toàn bộ feed
+export const checkNewPosts = async (req, res) => {
+  try {
+    const { userUid, since } = req.query;
+
+    if (!userUid || !since) {
+      return res.status(400).json({ success: false });
+    }
+
+    // TỐI ƯU: Kiểm tra Global Timestamp trong Redis trước
+    const globalLatest = await getCache("feed:global:latest_post_time");
+    if (globalLatest && parseInt(globalLatest) <= parseInt(since)) {
+      // Chắc chắn không có bài mới toàn cục -> không cần query DB
+      return res.status(200).json({ success: true, count: 0 });
+    }
+
+    const sinceDate = new Date(parseInt(since));
+    const friendUids = await getFriendUids(userUid);
+
+    const snapshot = await db.collection("posts")
+      .where("createdAt", ">=", admin.firestore.Timestamp.fromDate(sinceDate))
+      .where("privacy", "in", ["public", "friends"])
+      .orderBy("createdAt", "desc")
+      .limit(10)
+      .get();
+
+    const newPosts = snapshot.docs
+      .map(doc => ({ uid: doc.data().uid, privacy: doc.data().privacy }))
+      .filter(p => {
+        if (p.uid === userUid) return true;
+        if (p.privacy === "friends") return friendUids.includes(p.uid);
+        return true;
+      });
+
+    res.status(200).json({ success: true, count: newPosts.length });
+  } catch (error) {
+    res.status(500).json({ success: false, count: 0 });
+  }
+};
+
+export const deleteComment = async (req, res) => {
+  try {
+    const { postId, commentId } = req.params;
+    const { uid } = req.query; // uid của người thực hiện xóa
+
+    if (!postId || !commentId || !uid) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const batch = db.batch();
+
+    // 1. Tìm comment chính
+    const commentRef = db.collection("comments").doc(commentId);
+    const commentDoc = await commentRef.get();
+    if (!commentDoc.exists) {
+      return res.status(404).json({ success: false, message: "Comment not found" });
+    }
+
+    // 2. Tìm tất cả comment con (để trừ đúng số lượng)
+    const allCommentsSnapshot = await db.collection("comments").where("postId", "==", postId).get();
+    const allComments = allCommentsSnapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    const idsToDelete = [commentId];
+    const findDescendants = (parentId) => {
+      allComments.forEach(c => {
+        if (c.parentId === parentId) {
+          idsToDelete.push(c.id);
+          findDescendants(c.id);
+        }
+      });
+    };
+    findDescendants(commentId);
+
+    // 3. Thực hiện xóa trong batch
+    idsToDelete.forEach(id => {
+      batch.delete(db.collection("comments").doc(id));
+    });
+
+    // 4. Trừ số lượng ở bài viết
+    const postRef = db.collection("posts").doc(postId);
+    batch.update(postRef, {
+      commentsCount: admin.firestore.FieldValue.increment(-idsToDelete.length)
+    });
+
+    await batch.commit();
+
+    // 5. Invalidate Cache cho người xóa
+    await deleteCache(`feed:${uid}:main`);
 
     res.status(200).json({ success: true });
   } catch (error) {

@@ -1,11 +1,18 @@
 import { db, admin } from "../config/firebase.js";
-import { getCache, setCache, deleteCache } from "../utils/cache.js";
+import { getCache, setCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
 
 const getUserData = async (uid) => {
   try {
-    const snapshot = await db.collection("users").where("uid", "==", uid).get();
+    const cacheKey = `user_metadata:${uid}`;
+    const cached = await getCache(cacheKey);
+    if (cached) return cached;
+
+    const snapshot = await db.collection("users").where("uid", "==", uid).limit(1).get();
     if (snapshot.empty) return null;
-    return snapshot.docs[0].data();
+
+    const userData = { id: snapshot.docs[0].id, ...snapshot.docs[0].data() };
+    await setCache(cacheKey, userData, CACHE_TTL.USER_METADATA);
+    return userData;
   } catch (error) {
     return null;
   }
@@ -97,6 +104,10 @@ export const acceptFriendRequest = async (req, res) => {
     await Promise.all([
       deleteCache(`suggestions:${myUid}`),
       deleteCache(`suggestions:${fromUid}`),
+      deleteCache(`friends:${myUid}`),
+      deleteCache(`friends:${fromUid}`),
+      deleteCache(`feed:${myUid}:main`),
+      deleteCache(`feed:${fromUid}:main`),
     ]);
 
     res.status(200).json({ success: true });
@@ -170,6 +181,10 @@ export const unfriend = async (req, res) => {
     await Promise.all([
       deleteCache(`suggestions:${myUid}`),
       deleteCache(`suggestions:${targetUid}`),
+      deleteCache(`friends:${myUid}`),
+      deleteCache(`friends:${targetUid}`),
+      deleteCache(`feed:${myUid}:main`),
+      deleteCache(`feed:${targetUid}:main`),
     ]);
 
     res.status(200).json({ success: true });
@@ -342,8 +357,8 @@ export const getFriendSuggestions = async (req, res) => {
       .sort((a, b) => b._score - a._score)
       .slice(0, 5);
 
-    // 7. Save to Cache (2 hours)
-    await setCache(cacheKey, suggestions, 60 * 60 * 2);
+    // 7. Save to Cache
+    await setCache(cacheKey, suggestions, CACHE_TTL.SUGGESTIONS);
 
     res.status(200).json({ success: true, suggestions });
   } catch (error) {
