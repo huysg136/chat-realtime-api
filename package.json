@@ -4,7 +4,8 @@
   "type": "module",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js"
   },
   "keywords": [],
   "author": "",
@@ -14,15 +15,21 @@
     "@aws-sdk/client-s3": "^3.917.0",
     "@aws-sdk/s3-request-presigner": "^3.978.0",
     "@google-ai/generativelanguage": "^3.5.0",
-    "aws-sdk": "^2.1692.0",
+    "@upstash/redis": "^1.37.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
+    "firebase-admin": "^13.8.0",
     "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
-    "multer": "^2.0.2",
+    "multer": "^2.1.1",
     "node-fetch": "^3.3.2",
+    "redis": "^5.12.1",
     "resend": "^6.9.1",
-    "socket.io": "^4.8.1"
+    "socket.io": "^4.8.3"
+  },
+  "overrides": {
+    "uuid": "^14.0.0",
+    "@tootallnate/once": "^3.0.1"
   }
 }

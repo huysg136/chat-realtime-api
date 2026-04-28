@@ -4,7 +4,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 dotenv.config();
 
 export const config = {
-  port: process.env.PORT || 3000,
+  port: process.env.PORT || 8080,
   stringee: {
     sid: process.env.STRINGEE_API_KEY_SID,
     secret: process.env.STRINGEE_API_KEY_SECRET,

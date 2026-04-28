@@ -11,6 +11,9 @@ import uploadRoutes from "./src/routes/uploadRoutes.js";
 import aiRoutes from "./src/routes/aiRoutes.js";
 import reportRoutes from "./src/routes/reportsRoutes.js";
 import usersRoutes from "./src/routes/usersRoutes.js";
+import friendsRoutes from "./src/routes/friendsRoutes.js";
+import postsRoutes from "./src/routes/postsRoutes.js";
+
 
 const app = express();
 const server = http.createServer(app);
@@ -27,6 +30,9 @@ app.use(uploadRoutes);
 app.use("/api", aiRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/users", usersRoutes);
+app.use("/api/friends", friendsRoutes);
+app.use("/api/posts", postsRoutes);
+
 app.use(globalErrorHandler);
 
 const PORT = config.port;
