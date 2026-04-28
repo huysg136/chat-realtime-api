@@ -55,3 +55,23 @@ export async function deleteCache(key) {
         await redis.del(key);
     } catch { }
 }
+
+// --- Các hàm hỗ trợ Đếm số (Counter) ---
+
+export async function incrCache(key) {
+    try {
+        return await redis.incr(key);
+    } catch (err) {
+        console.error("Redis incr error:", err);
+        return null;
+    }
+}
+
+export async function decrCache(key) {
+    try {
+        return await redis.decr(key);
+    } catch (err) {
+        console.error("Redis decr error:", err);
+        return null;
+    }
+}

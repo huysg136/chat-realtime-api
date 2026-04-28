@@ -1,5 +1,6 @@
 import { db, admin } from "../config/firebase.js";
-import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
+import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL, incrCache } from "../utils/cache.js";
+import { notifyUnreadCount } from "../services/notificationService.js";
 
 const QUOTA_LIMIT = {
   free: 100 * 1024 * 1024,
@@ -125,6 +126,7 @@ export const createPost = async (req, res) => {
       likes: [],
       commentsCount: 0,
       privacy: privacy || "public",
+      fileSize: fileSize || 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -253,6 +255,7 @@ export const getFeed = async (req, res) => {
         const cSnap = await db.collection("comments")
           .where("postId", "==", pid)
           .where("parentId", "==", null)
+          .orderBy("likesCount", "desc")
           .orderBy("createdAt", "desc")
           .limit(1)
           .get();
@@ -319,6 +322,9 @@ export const likePost = async (req, res) => {
           isRead: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+
+        // Gửi thông báo realtime qua Socket + Redis
+        await notifyUnreadCount(req.app.get("io"), postData.uid);
       }
     }
 
@@ -350,6 +356,7 @@ export const commentPost = async (req, res) => {
       displayName: displayName || "Người dùng",
       photoURL: photoURL || "",
       likes: [],
+      likesCount: 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -376,6 +383,9 @@ export const commentPost = async (req, res) => {
         isRead: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
+
+      // Gửi thông báo realtime qua Socket + Redis
+      await notifyUnreadCount(req.app.get("io"), targetUid);
     }
 
     // Invalidate Feed Cache cho người Comment
@@ -409,11 +419,13 @@ export const likeComment = async (req, res) => {
 
     if (isLiked) {
       await commentRef.update({
-        likes: admin.firestore.FieldValue.arrayRemove(uid)
+        likes: admin.firestore.FieldValue.arrayRemove(uid),
+        likesCount: admin.firestore.FieldValue.increment(-1)
       });
     } else {
       await commentRef.update({
-        likes: admin.firestore.FieldValue.arrayUnion(uid)
+        likes: admin.firestore.FieldValue.arrayUnion(uid),
+        likesCount: admin.firestore.FieldValue.increment(1)
       });
 
       if (commentData.uid !== uid) {
@@ -427,11 +439,63 @@ export const likeComment = async (req, res) => {
           isRead: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
+
+        // Gửi thông báo realtime qua Socket + Redis
+        await notifyUnreadCount(req.app.get("io"), commentData.uid);
       }
     }
 
     // Invalidate Feed Cache cho người Like Comment
     await deleteCache(`feed:${uid}:main`);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+export const deletePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { uid } = req.query;
+
+    if (!postId || !uid) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const postRef = db.collection("posts").doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const postData = postDoc.data();
+
+    // Check ownership
+    if (postData.uid !== uid) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    // Delete post
+    await postRef.delete();
+
+    // Delete associated comments
+    const commentsSnapshot = await db.collection("comments").where("postId", "==", postId).get();
+    if (!commentsSnapshot.empty) {
+      const batch = db.batch();
+      commentsSnapshot.forEach(doc => {
+        batch.delete(doc.ref);
+      });
+      await batch.commit();
+    }
+
+    // Invalidate Cache
+    await deleteCache(`feed:${uid}:main`);
+    
+    // Update global timestamp
+    const now = Date.now();
+    await setCache("feed:global:latest_post_time", now, CACHE_TTL.GLOBAL_TIMESTAMP);
 
     res.status(200).json({ success: true });
   } catch (error) {

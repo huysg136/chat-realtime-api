@@ -7,12 +7,14 @@ import {
   unfriend,
   markNotificationAsRead,
   markAllNotificationsAsRead,
+  getUnreadCount,
   getFriendSuggestions,
 } from "../controllers/friendsController.js";
 
 const router = express.Router();
 
 router.get("/suggestions", getFriendSuggestions);
+router.get("/notifications/unread-count", getUnreadCount);
 
 
 router.post("/request", sendFriendRequest);
