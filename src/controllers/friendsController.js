@@ -476,10 +476,15 @@ export const getFriendSuggestions = async (req, res) => {
       (u) => !excludedUids.has(u)
     );
 
-    // Nếu không có FoF, trả về mảng rỗng (hoặc có thể fallback random)
-    if (candidateUids.length === 0) {
-      await setCache(cacheKey, [], CACHE_TTL.SUGGESTIONS);
-      return res.status(200).json({ success: true, suggestions: [] });
+    // 4. Nếu không đủ candidate từ FoF, lấy thêm user khác từ hệ thống làm candidate
+    if (candidateUids.length < 10) {
+      const allUsersSnapshot = await db.collection("users").limit(40).get();
+      allUsersSnapshot.docs.forEach((doc) => {
+        const uData = doc.data();
+        if (uData.uid && !excludedUids.has(uData.uid) && !candidateUids.includes(uData.uid)) {
+          candidateUids.push(uData.uid);
+        }
+      });
     }
 
     // Firestore "in" query giới hạn 30/chunk
