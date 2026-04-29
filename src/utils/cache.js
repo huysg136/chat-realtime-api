@@ -8,6 +8,7 @@ export const CACHE_TTL = {
     FEED_MAIN: 180,           // 3 phút
     SUGGESTIONS: 3600,        // 1 giờ
     GLOBAL_TIMESTAMP: 86400,  // 24 giờ
+    NOTIFICATION_COUNT: 86400 * 7, // 7 ngày
 };
 
 export async function getCache(key) {
@@ -73,5 +74,47 @@ export async function decrCache(key) {
     } catch (err) {
         console.error("Redis decr error:", err);
         return null;
+    }
+}
+
+// --- Notification Specific Helpers ---
+
+export const getUnreadCountKey = (uid) => `unread_count:${uid}`;
+
+export async function incrementUnreadCount(uid) {
+    if (!uid) return;
+    const key = getUnreadCountKey(uid);
+    try {
+        const count = await redis.incr(key);
+        // Reset TTL to 7 days on every increment
+        await redis.expire(key, CACHE_TTL.NOTIFICATION_COUNT);
+        return count;
+    } catch (err) {
+        console.error("Redis incrementUnreadCount error:", err);
+    }
+}
+
+export async function decrementUnreadCount(uid) {
+    if (!uid) return;
+    const key = getUnreadCountKey(uid);
+    try {
+        let count = await redis.decr(key);
+        if (count < 0) {
+            await redis.set(key, 0, { ex: CACHE_TTL.NOTIFICATION_COUNT });
+            count = 0;
+        }
+        return count;
+    } catch (err) {
+        console.error("Redis decrementUnreadCount error:", err);
+    }
+}
+
+export async function setUnreadCount(uid, count) {
+    if (!uid) return;
+    const key = getUnreadCountKey(uid);
+    try {
+        await redis.set(key, count, { ex: CACHE_TTL.NOTIFICATION_COUNT });
+    } catch (err) {
+        console.error("Redis setUnreadCount error:", err);
     }
 }

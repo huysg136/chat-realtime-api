@@ -1,5 +1,5 @@
 import { db, admin } from "../config/firebase.js";
-import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
+import { getCache, setCache, getMultipleCache, deleteCache, CACHE_TTL, incrementUnreadCount, decrementUnreadCount } from "../utils/cache.js";
 
 const QUOTA_LIMIT = {
   free: 100 * 1024 * 1024,
@@ -300,12 +300,8 @@ export const likePost = async (req, res) => {
     const postData = postDoc.data();
     const likes = postData.likes || [];
     const isLiked = likes.includes(uid);
-
-    if (isLiked) {
-      await postRef.update({
-        likes: admin.firestore.FieldValue.arrayRemove(uid)
-      });
-    } else {
+    if (!isLiked) {
+      // LIKE
       await postRef.update({
         likes: admin.firestore.FieldValue.arrayUnion(uid)
       });
@@ -322,7 +318,29 @@ export const likePost = async (req, res) => {
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Đã gỡ bỏ notifyUnreadCount
+        // Tăng số lượng trong Redis
+        await incrementUnreadCount(postData.uid);
+      }
+    } else {
+      // UNLIKE
+      await postRef.update({
+        likes: admin.firestore.FieldValue.arrayRemove(uid)
+      });
+
+      // Tìm thông báo chưa đọc tương ứng để xóa và giảm Redis count
+      const notifSnapshot = await db.collection("notifications")
+        .where("senderUid", "==", uid)
+        .where("receiverUid", "==", postData.uid)
+        .where("postId", "==", postId)
+        .where("type", "==", "post_like")
+        .where("isRead", "==", false)
+        .limit(1)
+        .get();
+
+      if (!notifSnapshot.empty) {
+        const notifDoc = notifSnapshot.docs[0];
+        await notifDoc.ref.delete();
+        await decrementUnreadCount(postData.uid);
       }
     }
 
@@ -382,7 +400,8 @@ export const commentPost = async (req, res) => {
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });
 
-      // Đã gỡ bỏ notifyUnreadCount
+      // Tăng Redis count
+      await incrementUnreadCount(targetUid);
     }
 
     // Invalidate Feed Cache cho người Comment
@@ -415,11 +434,29 @@ export const likeComment = async (req, res) => {
     const isLiked = likes.includes(uid);
 
     if (isLiked) {
+      // UNLIKE COMMENT
       await commentRef.update({
         likes: admin.firestore.FieldValue.arrayRemove(uid),
         likesCount: admin.firestore.FieldValue.increment(-1)
       });
+
+      // Tìm thông báo chưa đọc tương ứng để xóa và giảm Redis count
+      const notifSnapshot = await db.collection("notifications")
+        .where("senderUid", "==", uid)
+        .where("receiverUid", "==", commentData.uid)
+        .where("postId", "==", postId)
+        .where("type", "==", "comment_like")
+        .where("isRead", "==", false)
+        .limit(1)
+        .get();
+
+      if (!notifSnapshot.empty) {
+        const notifDoc = notifSnapshot.docs[0];
+        await notifDoc.ref.delete();
+        await decrementUnreadCount(commentData.uid);
+      }
     } else {
+      // LIKE COMMENT
       await commentRef.update({
         likes: admin.firestore.FieldValue.arrayUnion(uid),
         likesCount: admin.firestore.FieldValue.increment(1)
@@ -437,7 +474,8 @@ export const likeComment = async (req, res) => {
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
 
-        // Đã gỡ bỏ notifyUnreadCount
+        // Tăng Redis count
+        await incrementUnreadCount(commentData.uid);
       }
     }
 
@@ -473,6 +511,14 @@ export const deletePost = async (req, res) => {
       return res.status(403).json({ success: false, message: "Unauthorized" });
     }
 
+    // 1. Tìm tất cả thông báo CHƯA ĐỌC liên quan đến bài viết này
+    const notifsSnapshot = await db.collection("notifications")
+      .where("postId", "==", postId)
+      .where("isRead", "==", false)
+      .get();
+    
+    const unreadCountToDelete = notifsSnapshot.size;
+
     // Delete post
     await postRef.delete();
 
@@ -484,6 +530,34 @@ export const deletePost = async (req, res) => {
         batch.delete(doc.ref);
       });
       await batch.commit();
+    }
+
+    // 2. Xóa các thông báo và giảm Redis count (Dùng batch để tối ưu)
+    if (unreadCountToDelete > 0) {
+      const batch = db.batch();
+      notifsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+      await batch.commit();
+
+      // Giảm Redis count cho chủ bài viết
+      // Lưu ý: Trong hệ thống này, hầu hết thông báo của bài viết (like, comment) đều gửi tới chủ bài viết.
+      // Nếu có hệ thống thông báo cho người khác, cần xử lý logic giảm count cho từng người.
+      // Ở đây ta giả định receiverUid là người bị ảnh hưởng chính.
+      // Để chính xác nhất, ta nên đếm theo từng receiverUid.
+      const countsByReceiver = {};
+      notifsSnapshot.docs.forEach(doc => {
+        const { receiverUid } = doc.data();
+        countsByReceiver[receiverUid] = (countsByReceiver[receiverUid] || 0) + 1;
+      });
+
+      await Promise.all(
+        Object.entries(countsByReceiver).map(async ([ruid, count]) => {
+          // Thực hiện giảm count trong Redis (SUB)
+          // Có thể lặp decrementUnreadCount hoặc dùng logic SET trực tiếp nếu có helper
+          for (let i = 0; i < count; i++) {
+            await decrementUnreadCount(ruid);
+          }
+        })
+      );
     }
 
     // Invalidate Cache
@@ -584,6 +658,41 @@ export const deleteComment = async (req, res) => {
     });
 
     await batch.commit();
+
+    // 5. Xử lý thông báo chưa đọc liên quan đến các comment bị xóa
+    // Tìm các thông báo của những comment này mà chưa đọc
+    // Lưu ý: entityId của comment_like là commentId
+    // type có thể là post_comment hoặc comment_like
+    const notifsSnapshot = await db.collection("notifications")
+      .where("postId", "==", postId)
+      .where("isRead", "==", false)
+      .get();
+    
+    // Lọc ra những thông báo liên quan đến idsToDelete hoặc là post_comment của chính những comment này
+    const relatedNotifs = notifsSnapshot.docs.filter(doc => {
+      const data = doc.data();
+      // Nếu là post_comment thì entityId là commentId. Nếu là comment_like thì entityId là commentId.
+      return idsToDelete.includes(data.entityId) || (data.type === "post_comment" && idsToDelete.includes(doc.id));
+    });
+
+    if (relatedNotifs.length > 0) {
+      const nBatch = db.batch();
+      const countsByReceiver = {};
+      relatedNotifs.forEach(doc => {
+        nBatch.delete(doc.ref);
+        const { receiverUid } = doc.data();
+        countsByReceiver[receiverUid] = (countsByReceiver[receiverUid] || 0) + 1;
+      });
+      await nBatch.commit();
+
+      await Promise.all(
+        Object.entries(countsByReceiver).map(async ([ruid, count]) => {
+          for (let i = 0; i < count; i++) {
+            await decrementUnreadCount(ruid);
+          }
+        })
+      );
+    }
 
     // 5. Invalidate Cache cho người xóa
     await deleteCache(`feed:${uid}:main`);

@@ -1,5 +1,5 @@
 import { db, admin } from "../config/firebase.js";
-import { getCache, setCache, deleteCache, CACHE_TTL } from "../utils/cache.js";
+import { getCache, setCache, deleteCache, CACHE_TTL, incrementUnreadCount, decrementUnreadCount, setUnreadCount, getUnreadCountKey } from "../utils/cache.js";
 
 const getUserData = async (uid) => {
   try {
@@ -55,7 +55,8 @@ export const sendFriendRequest = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Đã gỡ bỏ notifyUnreadCount
+    // Tăng số lượng thông báo chưa đọc trong Redis
+    await incrementUnreadCount(toUid);
 
     // Invalidate Cache cho người gửi
     await deleteCache(`suggestions:${fromUid}`);
@@ -102,7 +103,8 @@ export const acceptFriendRequest = async (req, res) => {
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Đã gỡ bỏ notifyUnreadCount
+    // Tăng số lượng thông báo chưa đọc trong Redis (cho người gửi lời mời cũ)
+    await incrementUnreadCount(fromUid);
 
     // Invalidate Cache
     await Promise.all([
@@ -151,11 +153,26 @@ export const cancelFriendRequest = async (req, res) => {
       .where("status", "==", "pending")
       .get();
 
-    if (snapshot.empty) {
-      return res.status(404).json({ success: false, message: "Request not found" });
-    }
+    const requestDoc = snapshot.docs[0];
+    const { toUid: receiverUid } = requestDoc.data();
 
-    await db.collection("friendRequests").doc(snapshot.docs[0].id).delete();
+    // 1. Kiểm tra xem có thông báo tương ứng chưa đọc không
+    const notifSnapshot = await db.collection("notifications")
+      .where("receiverUid", "==", receiverUid)
+      .where("entityId", "==", requestDoc.id)
+      .where("isRead", "==", false)
+      .limit(1)
+      .get();
+
+    // 2. Xóa lời mời
+    await db.collection("friendRequests").doc(requestDoc.id).delete();
+
+    // 3. Nếu có thông báo chưa đọc, xóa nó và giảm Redis count
+    if (!notifSnapshot.empty) {
+      const notifDoc = notifSnapshot.docs[0];
+      await notifDoc.ref.delete();
+      await decrementUnreadCount(receiverUid);
+    }
 
     // Invalidate Cache cho người gửi và người nhận
     await Promise.all([
@@ -202,11 +219,13 @@ export const markNotificationAsRead = async (req, res) => {
     const { notificationId } = req.params;
     const { uid } = req.query; // Nhận uid từ frontend
 
-    await db.collection("notifications").doc(notificationId).update({
-      isRead: true,
-    });
+    const notifRef = db.collection("notifications").doc(notificationId);
+    const notifDoc = await notifRef.get();
 
-    // Đã gỡ bỏ decrementUnreadCount
+    if (notifDoc.exists && !notifDoc.data().isRead) {
+      await notifRef.update({ isRead: true });
+      if (uid) await decrementUnreadCount(uid);
+    }
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -222,13 +241,16 @@ export const markAllNotificationsAsRead = async (req, res) => {
       .where("isRead", "==", false)
       .get();
 
-    const batch = db.batch();
-    snapshot.docs.forEach((doc) => {
-      batch.update(doc.ref, { isRead: true });
-    });
-    await batch.commit();
+    if (!snapshot.empty) {
+      const batch = db.batch();
+      snapshot.docs.forEach((doc) => {
+        batch.update(doc.ref, { isRead: true });
+      });
+      await batch.commit();
+    }
 
-    // Đã gỡ bỏ resetUnreadCount
+    // Reset Redis count về 0
+    await setUnreadCount(uid, 0);
 
     res.status(200).json({ success: true });
   } catch (error) {
@@ -241,12 +263,25 @@ export const getUnreadCount = async (req, res) => {
     const { uid } = req.query;
     if (!uid) return res.status(400).json({ success: false });
 
+    // 1. Kiểm tra Redis trước
+    const cacheKey = getUnreadCountKey(uid);
+    const cachedCount = await getCache(cacheKey);
+    if (cachedCount !== null) {
+      return res.status(200).json({ success: true, count: parseInt(cachedCount) });
+    }
+
+    // 2. Fallback: Query Firestore
     const snapshot = await db.collection("notifications")
       .where("receiverUid", "==", uid)
       .where("isRead", "==", false)
       .get();
     
-    res.status(200).json({ success: true, count: snapshot.size });
+    const count = snapshot.size;
+    
+    // 3. Đồng bộ lại Redis với TTL dài (7 ngày)
+    await setUnreadCount(uid, count);
+    
+    res.status(200).json({ success: true, count });
   } catch (error) {
     res.status(500).json({ success: false });
   }

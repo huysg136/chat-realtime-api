@@ -1,7 +1,6 @@
 import express from "express";
 import http from "http";
 import cors from "cors";
-// import { Server } from "socket.io";
 import { config } from "./src/config/index.js";
 import { globalErrorHandler } from "./src/middlewares/errorHandler.js";
 
