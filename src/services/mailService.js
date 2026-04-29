@@ -105,7 +105,47 @@ function renderApproveEmail({ reporterName, messageText, adminName, reason, repo
   return baseLayout({ title: "Báo cáo của bạn đã được xử lý", contentHtml: content, isApprove: true });
 }
 
-export class ReportsService {
+function renderNewUserEmail({ displayName, email, uid, username, photoURL }) {
+  const content = `
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr><td><p style="margin:0 0 16px;font-size:16px;line-height:1.5;">👋 Có người dùng mới vừa đăng ký!</p></td></tr>
+      <tr><td>
+        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;border-radius:12px;margin-bottom:28px;">
+          <tr><td style="padding:20px;">
+            <div style="display:flex;align-items:center;gap:16px;margin-bottom:16px;">
+              ${photoURL ? `<img src="${escapeHtml(photoURL)}" width="56" height="56" style="border-radius:50%;display:block;" />` : ""}
+            </div>
+            <table width="100%" cellpadding="0" cellspacing="0">
+              <tr>
+                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;width:140px;">Tên hiển thị</td>
+                <td style="padding:6px 0;font-size:14px;color:#1e293b;">${escapeHtml(displayName || "—")}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;">Quik ID</td>
+                <td style="padding:6px 0;font-size:14px;color:#1e293b;">@${escapeHtml(username || "—")}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;">Email</td>
+                <td style="padding:6px 0;font-size:14px;color:#1e293b;">${escapeHtml(email || "—")}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;">UID</td>
+                <td style="padding:6px 0;font-size:12px;color:#64748b;font-family:monospace;">${escapeHtml(uid || "—")}</td>
+              </tr>
+              <tr>
+                <td style="padding:6px 0;font-size:13px;font-weight:600;color:#64748b;">Thời gian</td>
+                <td style="padding:6px 0;font-size:14px;color:#1e293b;">${viDate()} — ${new Date().toLocaleTimeString("vi-VN")}</td>
+              </tr>
+            </table>
+          </td></tr>
+        </table>
+      </td></tr>
+    </table>
+  `;
+  return baseLayout({ title: "Người dùng mới đăng ký", contentHtml: content, isApprove: false });
+}
+
+export class MailService {
   constructor() {
     this.resend = new Resend(process.env.RESEND_API_KEY);
   }
@@ -141,6 +181,26 @@ export class ReportsService {
       throw new AppError(`Failed to send email: ${error.message}`, 500);
     }
   }
+
+  async sendNewUserNotification({ displayName, email, uid, username, photoURL }) {
+    if (!process.env.RESEND_API_KEY) {
+      throw new AppError("Missing RESEND_API_KEY", 500);
+    }
+
+    const html = renderNewUserEmail({ displayName, email, uid, username, photoURL });
+
+    try {
+      const data = await this.resend.emails.send({
+        from: "Quik <no-reply@quik.id.vn>",
+        to: ["thaigiahuy6912@gmail.com"],
+        subject: `[Quik] Người dùng mới: ${displayName || email}`,
+        html,
+      });
+      return { success: true, data };
+    } catch (error) {
+      throw new AppError(`Failed to send email: ${error.message}`, 500);
+    }
+  }
 }
 
-export const reportsService = new ReportsService();
+export const mailService = new MailService();

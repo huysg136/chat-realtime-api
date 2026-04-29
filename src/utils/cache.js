@@ -94,11 +94,11 @@ export async function incrementUnreadCount(uid) {
     }
 }
 
-export async function decrementUnreadCount(uid) {
+export async function decrementUnreadCount(uid, amount = 1) {
     if (!uid) return;
     const key = getUnreadCountKey(uid);
     try {
-        let count = await redis.decr(key);
+        let count = await redis.decrby(key, amount);
         if (count < 0) {
             await redis.set(key, 0, { ex: CACHE_TTL.NOTIFICATION_COUNT });
             count = 0;

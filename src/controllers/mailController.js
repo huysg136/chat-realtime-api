@@ -1,8 +1,8 @@
-import { reportsService } from "../services/reportsService.js";
+import { mailService } from "../services/mailService.js";
 import { AppError } from "../utils/AppError.js";
 
-export class ReportsController {
-    async notify(req, res, next) {
+export class MailController {
+    async notifyReportResult(req, res, next) {
         try {
             const {
                 reporterEmail,
@@ -20,7 +20,7 @@ export class ReportsController {
                 throw new AppError("Missing required fields", 400);
             }
 
-            const result = await reportsService.sendReportResultEmail({
+            const result = await mailService.sendReportResultEmail({
                 reporterEmail,
                 reporterName,
                 messageText,
@@ -41,6 +41,28 @@ export class ReportsController {
             next(err);
         }
     }
+
+    async notifyNewUser(req, res, next) {
+        try {
+            const { displayName, email, uid, username, photoURL } = req.body;
+
+            const result = await mailService.sendNewUserNotification({
+                displayName,
+                email,
+                uid,
+                username,
+                photoURL,
+            });
+
+            res.status(200).json({
+                success: true,
+                message: "New user notification email sent",
+                data: result.data,
+            });
+        } catch (err) {
+            next(err);
+        }
+    }
 }
 
-export const reportsController = new ReportsController();
+export const mailController = new MailController();

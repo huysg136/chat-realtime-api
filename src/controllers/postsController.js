@@ -14,7 +14,6 @@ const getUserData = async (uid) => {
     const cached = await getCache(cacheKey);
     if (cached) return cached;
 
-    // Sử dụng doc(uid) để truy cập trực tiếp bằng ID (nhanh hơn query)
     const snapshot = await db.collection("users").where("uid", "==", uid).limit(1).get();
     if (snapshot.empty) return null;
 
@@ -245,29 +244,9 @@ export const getFeed = async (req, res) => {
         return { ...post, _score: score };
       });
 
-    // Fetch Top Comments for each post (Gom nhóm để tối ưu)
-    const postIds = scoredPosts.map(p => p.id);
-    const topCommentsMap = {};
-
-    if (postIds.length > 0) {
-      await Promise.all(postIds.map(async (pid) => {
-        const cSnap = await db.collection("comments")
-          .where("postId", "==", pid)
-          .where("parentId", "==", null)
-          .orderBy("likesCount", "desc")
-          .orderBy("createdAt", "desc")
-          .limit(1)
-          .get();
-        
-        if (!cSnap.empty) {
-          topCommentsMap[pid] = { id: cSnap.docs[0].id, ...cSnap.docs[0].data() };
-        }
-      }));
-    }
-
     const finalPosts = scoredPosts.map(post => ({
       ...post,
-      topComment: topCommentsMap[post.id] || null
+      topComment: post.topComment || null
     }));
 
     // Cache the final scored feed (Only for Main Feed)
@@ -362,6 +341,12 @@ export const commentPost = async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
+    const postDoc = await db.collection("posts").doc(postId).get();
+    if (!postDoc.exists) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+    const postData = postDoc.data();
+
     const commentRef = await db.collection("comments").add({
       postId,
       parentId: parentId || null,
@@ -380,13 +365,27 @@ export const commentPost = async (req, res) => {
       commentsCount: admin.firestore.FieldValue.increment(1)
     });
 
-    let targetUid = postAuthorUid;
-    if (!targetUid) {
-      const postDoc = await db.collection("posts").doc(postId).get();
-      if (postDoc.exists) {
-        targetUid = postDoc.data().uid;
+    if (!parentId) {
+      const currentTop = postData.topComment;
+      if (!currentTop || (currentTop.likesCount || 0) <= 0) {
+        await db.collection("posts").doc(postId).update({
+          topComment: {
+            id: commentRef.id,
+            postId,
+            parentId: null,
+            content,
+            uid,
+            displayName: displayName || "Người dùng",
+            photoURL: photoURL || "",
+            likes: [],
+            likesCount: 0,
+            createdAt: admin.firestore.Timestamp.now()
+          }
+        });
       }
     }
+
+    const targetUid = postAuthorUid || postData.uid;
 
     if (targetUid && targetUid !== uid) {
       await db.collection("notifications").add({
@@ -479,6 +478,26 @@ export const likeComment = async (req, res) => {
       }
     }
 
+    if (!commentData.parentId) {
+      const cSnap = await db.collection("comments")
+        .where("postId", "==", postId)
+        .where("parentId", "==", null)
+        .orderBy("likesCount", "desc")
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+
+      if (!cSnap.empty) {
+        await db.collection("posts").doc(postId).update({
+          topComment: { id: cSnap.docs[0].id, ...cSnap.docs[0].data() }
+        });
+      } else {
+        await db.collection("posts").doc(postId).update({
+          topComment: null
+        });
+      }
+    }
+
     // Invalidate Feed Cache cho người Like Comment
     await deleteCache(`feed:${uid}:main`);
 
@@ -516,7 +535,7 @@ export const deletePost = async (req, res) => {
       .where("postId", "==", postId)
       .where("isRead", "==", false)
       .get();
-    
+
     const unreadCountToDelete = notifsSnapshot.size;
 
     // Delete post
@@ -553,16 +572,14 @@ export const deletePost = async (req, res) => {
         Object.entries(countsByReceiver).map(async ([ruid, count]) => {
           // Thực hiện giảm count trong Redis (SUB)
           // Có thể lặp decrementUnreadCount hoặc dùng logic SET trực tiếp nếu có helper
-          for (let i = 0; i < count; i++) {
-            await decrementUnreadCount(ruid);
-          }
+          await decrementUnreadCount(ruid, count);
         })
       );
     }
 
     // Invalidate Cache
     await deleteCache(`feed:${uid}:main`);
-    
+
     // Update global timestamp
     const now = Date.now();
     await setCache("feed:global:latest_post_time", now, CACHE_TTL.GLOBAL_TIMESTAMP);
@@ -659,6 +676,27 @@ export const deleteComment = async (req, res) => {
 
     await batch.commit();
 
+    const commentData = commentDoc.data();
+    if (!commentData.parentId) {
+      const cSnap = await db.collection("comments")
+        .where("postId", "==", postId)
+        .where("parentId", "==", null)
+        .orderBy("likesCount", "desc")
+        .orderBy("createdAt", "desc")
+        .limit(1)
+        .get();
+
+      if (!cSnap.empty) {
+        await db.collection("posts").doc(postId).update({
+          topComment: { id: cSnap.docs[0].id, ...cSnap.docs[0].data() }
+        });
+      } else {
+        await db.collection("posts").doc(postId).update({
+          topComment: null
+        });
+      }
+    }
+
     // 5. Xử lý thông báo chưa đọc liên quan đến các comment bị xóa
     // Tìm các thông báo của những comment này mà chưa đọc
     // Lưu ý: entityId của comment_like là commentId
@@ -667,7 +705,7 @@ export const deleteComment = async (req, res) => {
       .where("postId", "==", postId)
       .where("isRead", "==", false)
       .get();
-    
+
     // Lọc ra những thông báo liên quan đến idsToDelete hoặc là post_comment của chính những comment này
     const relatedNotifs = notifsSnapshot.docs.filter(doc => {
       const data = doc.data();
@@ -687,14 +725,12 @@ export const deleteComment = async (req, res) => {
 
       await Promise.all(
         Object.entries(countsByReceiver).map(async ([ruid, count]) => {
-          for (let i = 0; i < count; i++) {
-            await decrementUnreadCount(ruid);
-          }
+          await decrementUnreadCount(ruid, count);
         })
       );
     }
 
-    // 5. Invalidate Cache cho người xóa
+    // 6. Invalidate Cache cho người xóa
     await deleteCache(`feed:${uid}:main`);
 
     res.status(200).json({ success: true });
