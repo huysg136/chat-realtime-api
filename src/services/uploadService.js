@@ -4,12 +4,12 @@ import { config, r2Client } from "../config/index.js";
 import { AppError } from "../utils/AppError.js";
 
 export class UploadService {
-    async generatePresignedUrl(fileName, fileType) {
+    async generatePresignedUrl(fileName, fileType, folder = "uploads") {
         if (!fileName || !fileType) {
             throw new AppError("Missing fileName or fileType", 400);
         }
 
-        const key = `uploads/${Date.now()}_${fileName}`;
+        const key = `${folder}/${Date.now()}_${fileName}`;
 
         const command = new PutObjectCommand({
             Bucket: config.r2.bucket,

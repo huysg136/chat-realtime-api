@@ -3,8 +3,8 @@ import { uploadService } from "../services/uploadService.js";
 export class UploadController {
     async getUploadUrl(req, res, next) {
         try {
-            const { fileName, fileType } = req.body;
-            const result = await uploadService.generatePresignedUrl(fileName, fileType);
+            const { fileName, fileType, folder } = req.body;
+            const result = await uploadService.generatePresignedUrl(fileName, fileType, folder);
             res.json(result);
         } catch (err) {
             next(err);
