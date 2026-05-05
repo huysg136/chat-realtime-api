@@ -54,14 +54,14 @@ const getFriendUids = async (uid) => {
 };
 
 const computeScore = ({ post, userUid, friendUids, author }) => {
-  const GRAVITY = 1.8;
-  const likesCount = post.likes?.length || 0;
+  const GRAVITY = 1.5;
+  const likesCount = (post.likes || []).filter(id => id !== post.uid).length;
   const commentsCount = post.commentsCount || 0;
   const E = likesCount * 1 + commentsCount * 3;
 
   let A = 0;
-  if (post.uid === userUid) A = 15;
-  else if (friendUids.includes(post.uid)) A = 8;
+  if (post.uid === userUid) A = 5;
+  else if (friendUids.includes(post.uid)) A = 6;
 
   let P = 0;
   if (author?.role === "admin") P = 12;
