@@ -64,15 +64,16 @@ const computeScore = ({ post, userUid, friendUids, author }) => {
   else if (friendUids.includes(post.uid)) A = 6;
 
   let P = 0;
-  if (author?.role === "admin") P = 12;
-  else if (author?.role === "moderator") P = 8;
-  else if (author?.premiumLevel === "max") P = 6;
-  else if (author?.premiumLevel === "pro") P = 4;
-  else if (author?.premiumLevel === "lite") P = 2;
+  if (author?.role === "admin") P = 6;
+  else if (author?.role === "moderator") P = 4;
+  else if (author?.premiumLevel === "max") P = 3;
+  else if (author?.premiumLevel === "pro") P = 2;
+  else if (author?.premiumLevel === "lite") P = 1;
 
-  const postTimeMs = post.createdAt?._seconds
-    ? post.createdAt._seconds * 1000
-    : Date.now();
+  const postTimeMs = post.createdAt?.toMillis?.()
+    ?? (post.createdAt?._seconds ? post.createdAt._seconds * 1000
+    : (post.createdAt?.seconds ? post.createdAt.seconds * 1000
+    : Date.now()));
   const T = Math.max(0, (Date.now() - postTimeMs) / (1000 * 60 * 60));
 
   const freshnessMultiplier = T < 1 ? 1.3 : 1.0;
