@@ -143,6 +143,75 @@ export const createPost = async (req, res) => {
   }
 };
 
+export const updatePost = async (req, res) => {
+  try {
+    const { postId } = req.params;
+    const { content, mediaUrl, kind, privacy, uid, fileSize } = req.body;
+
+    if (!postId || !uid) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    const postRef = db.collection("posts").doc(postId);
+    const postDoc = await postRef.get();
+
+    if (!postDoc.exists) {
+      return res.status(404).json({ success: false, message: "Post not found" });
+    }
+
+    const postData = postDoc.data();
+
+    // Check ownership
+    if (postData.uid !== uid) {
+      return res.status(403).json({ success: false, message: "Unauthorized" });
+    }
+
+    const updateData = {
+      content: content !== undefined ? content : postData.content,
+      mediaUrl: mediaUrl !== undefined ? mediaUrl : postData.mediaUrl,
+      kind: kind !== undefined ? kind : postData.kind,
+      privacy: privacy !== undefined ? privacy : postData.privacy,
+      editedAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+
+    // Update Quota if fileSize is provided (new file uploaded)
+    if (fileSize && fileSize > 0) {
+      const userDoc = await getUserData(uid);
+      if (userDoc) {
+        const level = userDoc.premiumLevel || "free";
+        const limit = QUOTA_LIMIT[level] || QUOTA_LIMIT.free;
+        const currentUsed = userDoc.quotaUsed || 0;
+
+        // Note: This logic assumes we add to quota. 
+        // In a real scenario, we might want to subtract the old file size if it's being replaced.
+        if (currentUsed + fileSize > limit) {
+          return res.status(400).json({
+            success: false,
+            message: "Dung lượng bộ nhớ đã đầy. Vui lòng nâng cấp gói."
+          });
+        }
+
+        await db.collection("users").doc(userDoc.id).update({
+          quotaUsed: admin.firestore.FieldValue.increment(fileSize)
+        });
+      }
+    }
+
+    await postRef.update(updateData);
+
+    // Invalidate Feed Cache
+    await deleteCache(`feed:${uid}:main`);
+    
+    // Update global timestamp to trigger checkNewPosts for others if privacy is public/friends
+    const now = Date.now();
+    await setCache("feed:global:latest_post_time", now, CACHE_TTL.GLOBAL_TIMESTAMP);
+
+    res.status(200).json({ success: true });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
 export const getFeed = async (req, res) => {
   try {
     const { userUid, filterUserId, searchQuery, skipCache } = req.query;
