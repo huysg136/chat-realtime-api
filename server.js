@@ -16,8 +16,25 @@ import mailRoutes from "./src/routes/mailRoutes.js";
 import friendsRoutes from "./src/routes/friendsRoutes.js";
 import postsRoutes from "./src/routes/postsRoutes.js";
 
-// middleware
-app.use(cors());
+const isProduction = process.env.NODE_ENV === "production";
+
+const allowedOrigins = isProduction
+  ? ["https://quik.id.vn", "https://www.quik.id.vn"]
+  : ["http://localhost:3000", "https://quik.id.vn", "https://www.quik.id.vn"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(globalLimiter);
 // routes

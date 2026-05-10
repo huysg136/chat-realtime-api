@@ -84,11 +84,8 @@ const computeScore = ({ post, userUid, friendUids, author }) => {
 
 export const createPost = async (req, res) => {
   try {
-    const { content, mediaUrl, kind, uid, displayName, photoURL, privacy, fileSize } = req.body;
-
-    if (!uid) {
-      return res.status(400).json({ success: false, message: "Missing uid" });
-    }
+    const uid = req.user.uid;
+    const { content, mediaUrl, kind, displayName, photoURL, privacy, fileSize } = req.body;
 
     const userDoc = await getUserData(uid);
     if (!userDoc) {
@@ -146,9 +143,10 @@ export const createPost = async (req, res) => {
 export const updatePost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { content, mediaUrl, kind, privacy, uid, fileSize } = req.body;
+    const uid = req.user.uid;
+    const { content, mediaUrl, kind, privacy, fileSize } = req.body;
 
-    if (!postId || !uid) {
+    if (!postId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -214,12 +212,9 @@ export const updatePost = async (req, res) => {
 
 export const getFeed = async (req, res) => {
   try {
-    const { userUid, filterUserId, searchQuery, skipCache, lastCreatedAt, limit: limitQuery } = req.query;
+    const userUid = req.user.uid;
+    const { filterUserId, searchQuery, skipCache, lastCreatedAt, limit: limitQuery } = req.query;
     const limit = Math.min(parseInt(limitQuery) || 15, 50);
-
-    if (!userUid) {
-      return res.status(400).json({ success: false, message: "Missing userUid" });
-    }
 
     const isMainFeed = !filterUserId && !searchQuery;
     const isFirstPage = !lastCreatedAt;
@@ -365,9 +360,10 @@ export const getFeed = async (req, res) => {
 export const likePost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { uid, displayName, photoURL } = req.body;
+    const uid = req.user.uid;
+    const { displayName, photoURL } = req.body;
 
-    if (!postId || !uid) {
+    if (!postId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -437,9 +433,10 @@ export const likePost = async (req, res) => {
 export const commentPost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { parentId, replyToUid, replyToName, content, uid, displayName, photoURL, postAuthorUid } = req.body;
+    const uid = req.user.uid;
+    const { parentId, replyToUid, replyToName, content, displayName, photoURL, postAuthorUid } = req.body;
 
-    if (!postId || !uid || !content) {
+    if (!postId || !content) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -517,9 +514,10 @@ export const commentPost = async (req, res) => {
 export const likeComment = async (req, res) => {
   try {
     const { postId, commentId } = req.params;
-    const { uid, displayName, photoURL } = req.body;
+    const uid = req.user.uid;
+    const { displayName, photoURL } = req.body;
 
-    if (!commentId || !uid) {
+    if (!commentId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -612,9 +610,9 @@ export const likeComment = async (req, res) => {
 export const deletePost = async (req, res) => {
   try {
     const { postId } = req.params;
-    const { uid } = req.query;
+    const uid = req.user.uid;
 
-    if (!postId || !uid) {
+    if (!postId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
@@ -695,9 +693,10 @@ export const deletePost = async (req, res) => {
 // Chỉ trả về số lượng bài mới, không query toàn bộ feed
 export const checkNewPosts = async (req, res) => {
   try {
-    const { userUid, since } = req.query;
+    const userUid = req.user.uid;
+    const { since } = req.query;
 
-    if (!userUid || !since) {
+    if (!since) {
       return res.status(400).json({ success: false });
     }
 
@@ -735,9 +734,9 @@ export const checkNewPosts = async (req, res) => {
 export const deleteComment = async (req, res) => {
   try {
     const { postId, commentId } = req.params;
-    const { uid } = req.query; // uid của người thực hiện xóa
+    const uid = req.user.uid;
 
-    if (!postId || !commentId || !uid) {
+    if (!postId || !commentId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
