@@ -319,10 +319,15 @@ export const getFeed = async (req, res) => {
       });
 
     // Determine if there might be more posts
-    // If we are in pagination mode, we check if we hit the limit
     let hasMore = false;
     if (isMainFeed) {
-      hasMore = rawPosts.length === limit * 2;
+      // If we got a full batch from Firestore, there's likely more in the DB
+      const hitDbLimit = rawPosts.length === limit * 2;
+      // If after filtering we have more than the requested limit, we have more to show
+      const hasExtraFiltered = filteredPosts.length > limit;
+      
+      hasMore = hitDbLimit || hasExtraFiltered;
+      
       // Slice to requested limit
       filteredPosts = filteredPosts.slice(0, limit);
     }
@@ -333,10 +338,16 @@ export const getFeed = async (req, res) => {
       return { ...post, _score: score, topComment: post.topComment || null };
     });
 
-    // Get the timestamp of the last post in the original rawPosts (to ensure we don't skip docs)
-    // Actually, it's better to use the timestamp of the last post in rawPosts if we want to continue correctly
-    const lastDoc = rawPosts[rawPosts.length - 1];
-    const newLastCreatedAt = lastDoc?.createdAt?.toMillis?.() || lastDoc?.createdAt?._seconds * 1000 || null;
+    // Get the timestamp of the last post to use as cursor
+    let newLastCreatedAt = null;
+    if (filteredPosts.length > 0) {
+      const lastVisiblePost = filteredPosts[filteredPosts.length - 1];
+      newLastCreatedAt = lastVisiblePost?.createdAt?.toMillis?.() || lastVisiblePost?.createdAt?._seconds * 1000 || null;
+    } else if (hasMore && rawPosts.length > 0) {
+      // If no visible posts in this batch but more exist in DB, use the last raw post to jump
+      const lastRawPost = rawPosts[rawPosts.length - 1];
+      newLastCreatedAt = lastRawPost?.createdAt?.toMillis?.() || lastRawPost?.createdAt?._seconds * 1000 || null;
+    }
 
     const result = {
       success: true,
