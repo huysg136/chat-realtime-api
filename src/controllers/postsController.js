@@ -258,12 +258,11 @@ export const getFeed = async (req, res) => {
       // Fetch limit * 2 to buffer privacy filter
       queryRef = queryRef.orderBy("createdAt", "desc").limit(limit * 2);
     } else if (filterUserId) {
-      // Profile mode: No pagination per request
+      // Profile mode: Fetch all posts by this user (ordered by desc)
       queryRef = queryRef.where("uid", "==", filterUserId).orderBy("createdAt", "desc");
     } else {
-      // Search mode or fallback: Default to 7 days window for first fetch if no query
-      const windowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-      queryRef = queryRef.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(windowStart)).orderBy("createdAt", "desc");
+      // Search mode: Fetch a larger batch (e.g., 100) to filter client-side without time restriction
+      queryRef = queryRef.orderBy("createdAt", "desc").limit(100);
     }
 
     const snapshot = await queryRef.get();
