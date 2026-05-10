@@ -1,37 +1,40 @@
 import redis from "../config/redis.js";
 
-export const createRateLimiter = ({ limit = 100, windowMs = 60, prefix = "global" }) => {
+const rateLimitScript = `
+  local count = redis.call('INCR', KEYS[1])
+  local ttl = redis.call('TTL', KEYS[1])
+  if ttl == -1 then
+    redis.call('EXPIRE', KEYS[1], ARGV[1])
+  end
+  return count
+`;
+
+const createRateLimiter = ({ limit = 100, windowMs = 60 }) => {
     return async (req, res, next) => {
         const ip = req.headers["x-forwarded-for"]?.split(",")[0].trim()
             || req.socket.remoteAddress
             || "unknown";
-        const key = `ratelimit:${prefix}:${ip}`;
+        const key = `ratelimit:${ip}`;
 
         try {
-            const count = await redis.incr(key);
-            if (count === 1) {
-                await redis.expire(key, windowMs);
-            }
+            const count = await redis.eval(rateLimitScript, [key], [windowMs]);
+
+            res.set("X-RateLimit-Limit", limit);
+            res.set("X-RateLimit-Remaining", Math.max(0, limit - count));
 
             if (count > limit) {
                 return res.status(429).json({
                     success: false,
-                    message: `Bạn đã gửi quá nhiều yêu cầu đến ${prefix}. Vui lòng thử lại sau.`,
+                    message: `Bạn đã gửi quá nhiều yêu cầu. Vui lòng thử lại sau.`,
                 });
             }
 
             next();
         } catch (error) {
-            console.error(`Rate limiter (${prefix}) error:`, error);
+            console.error(`Rate limiter error:`, error);
             next();
         }
     };
 };
 
-export const globalLimiter = createRateLimiter({ limit: 200, windowMs: 60, prefix: "global" });
-export const aiLimiter = createRateLimiter({ limit: 20, windowMs: 60, prefix: "ai" });
-export const stringeeLimiter = createRateLimiter({ limit: 20, windowMs: 60, prefix: "stringee" });
-export const uploadLimiter = createRateLimiter({ limit: 5, windowMs: 60, prefix: "upload" });
-export const friendsLimiter = createRateLimiter({ limit: 30, windowMs: 60, prefix: "friends" });
-export const postsLimiter = createRateLimiter({ limit: 30, windowMs: 60, prefix: "posts" });
-export const mailLimiter = createRateLimiter({ limit: 15, windowMs: 60, prefix: "mail" });
+export const rateLimiter = createRateLimiter({ limit: 200, windowMs: 60 });

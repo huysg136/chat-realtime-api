@@ -3,7 +3,7 @@ import http from "http";
 import cors from "cors";
 import { config } from "./src/config/index.js";
 import { globalErrorHandler } from "./src/middlewares/errorHandler.js";
-import { globalLimiter } from "./src/middlewares/rateLimiter.js";
+import { rateLimiter } from "./src/middlewares/rateLimiter.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -36,7 +36,7 @@ app.use(
   })
 );
 app.use(express.json());
-app.use(globalLimiter);
+app.use(rateLimiter);
 // routes
 app.use("/api/stringee", stringeeRoutes);
 app.use(uploadRoutes);
