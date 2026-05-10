@@ -214,45 +214,64 @@ export const updatePost = async (req, res) => {
 
 export const getFeed = async (req, res) => {
   try {
-    const { userUid, filterUserId, searchQuery, skipCache } = req.query;
+    const { userUid, filterUserId, searchQuery, skipCache, lastCreatedAt, limit: limitQuery } = req.query;
+    const limit = Math.min(parseInt(limitQuery) || 15, 50);
 
     if (!userUid) {
       return res.status(400).json({ success: false, message: "Missing userUid" });
     }
 
     const isMainFeed = !filterUserId && !searchQuery;
+    const isFirstPage = !lastCreatedAt;
     const feedCacheKey = `feed:${userUid}:main`;
 
-    if (isMainFeed && !skipCache) {
+    // 1. Cache strategy: Only cache the first page of Main Feed
+    if (isMainFeed && isFirstPage && !skipCache) {
       const cachedFeed = await getCache(feedCacheKey);
       if (cachedFeed) {
         console.log(`[Cache] HIT Main Feed for user: ${userUid}`);
-        return res.status(200).json({ success: true, posts: cachedFeed, fromCache: true });
+        return res.status(200).json({
+          success: true,
+          posts: cachedFeed.posts,
+          lastCreatedAt: cachedFeed.lastCreatedAt,
+          hasMore: cachedFeed.hasMore,
+          fromCache: true
+        });
       }
     }
 
-    if (isMainFeed) {
+    if (isMainFeed && isFirstPage) {
       console.log(`[Cache] MISS Main Feed for user: ${userUid}. Computing...`);
     } else {
-      console.log(`[Query] Fetching Profile/Search for user: ${userUid}`);
+      console.log(`[Query] Fetching Feed for user: ${userUid} (lastCreatedAt: ${lastCreatedAt}, limit: ${limit})`);
     }
 
     const friendUids = await getFriendUids(userUid);
-    const windowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
     let queryRef = db.collection("posts");
 
-    if (filterUserId) {
-      queryRef = queryRef.where("uid", "==", filterUserId);
+    if (isMainFeed) {
+      // Pagination for Main Feed
+      if (lastCreatedAt) {
+        const startTimestamp = admin.firestore.Timestamp.fromMillis(parseInt(lastCreatedAt));
+        queryRef = queryRef.where("createdAt", "<", startTimestamp);
+      }
+      // Fetch limit * 2 to buffer privacy filter
+      queryRef = queryRef.orderBy("createdAt", "desc").limit(limit * 2);
+    } else if (filterUserId) {
+      // Profile mode: No pagination per request
+      queryRef = queryRef.where("uid", "==", filterUserId).orderBy("createdAt", "desc");
     } else {
-      queryRef = queryRef.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(windowStart));
+      // Search mode or fallback: Default to 7 days window for first fetch if no query
+      const windowStart = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+      queryRef = queryRef.where("createdAt", ">=", admin.firestore.Timestamp.fromDate(windowStart)).orderBy("createdAt", "desc");
     }
-
-    // Firestore Admin SDK orderBy
-    queryRef = queryRef.orderBy("createdAt", "desc");
 
     const snapshot = await queryRef.get();
     const rawPosts = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+
+    if (rawPosts.length === 0) {
+      return res.status(200).json({ success: true, posts: [], hasMore: false });
+    }
 
     // Optimization: Bulk fetch metadata from cache
     const authorUids = [...new Set(rawPosts.map((p) => p.uid))];
@@ -270,9 +289,7 @@ export const getFeed = async (req, res) => {
       }
     });
 
-    // 5. Fetch missing user metadata using 'in' query (Tối ưu hơn query lẻ)
     if (missingUids.length > 0) {
-      // Chia nhỏ mảng nếu missingUids > 30 (limit của Firebase 'in')
       const chunks = [];
       for (let i = 0; i < missingUids.length; i += 30) {
         chunks.push(missingUids.slice(i, i + 30));
@@ -289,9 +306,8 @@ export const getFeed = async (req, res) => {
     }
 
     // Filter by Privacy & Search Query
-    const scoredPosts = rawPosts
+    let filteredPosts = rawPosts
       .filter((post) => {
-        // Privacy filter
         const isAuthor = post.uid === userUid;
         const isFriend = friendUids.includes(post.uid);
 
@@ -300,32 +316,49 @@ export const getFeed = async (req, res) => {
         return true; // public
       })
       .filter((post) => {
-        // Search filter
         if (!searchQuery) return true;
         const contentMatch = post.content?.toLowerCase().includes(searchQuery.toLowerCase());
         const author = authorMetadataMap[post.uid] || {};
         const authorName = author.displayName || post.displayName || "";
         const authorMatch = authorName.toLowerCase().includes(searchQuery.toLowerCase());
         return contentMatch || authorMatch;
-      })
-      .map((post) => {
-        const author = authorMetadataMap[post.uid] || {};
-        const score = computeScore({ post, userUid, friendUids, author });
-        return { ...post, _score: score };
       });
 
-    const finalPosts = scoredPosts.map(post => ({
-      ...post,
-      topComment: post.topComment || null
-    }));
-
-    // Cache the final scored feed (Only for Main Feed)
+    // Determine if there might be more posts
+    // If we are in pagination mode, we check if we hit the limit
+    let hasMore = false;
     if (isMainFeed) {
-      await setCache(feedCacheKey, finalPosts, CACHE_TTL.FEED_MAIN);
+      hasMore = rawPosts.length === limit * 2;
+      // Slice to requested limit
+      filteredPosts = filteredPosts.slice(0, limit);
     }
 
-    res.status(200).json({ success: true, posts: finalPosts });
+    const scoredPosts = filteredPosts.map((post) => {
+      const author = authorMetadataMap[post.uid] || {};
+      const score = computeScore({ post, userUid, friendUids, author });
+      return { ...post, _score: score, topComment: post.topComment || null };
+    });
+
+    // Get the timestamp of the last post in the original rawPosts (to ensure we don't skip docs)
+    // Actually, it's better to use the timestamp of the last post in rawPosts if we want to continue correctly
+    const lastDoc = rawPosts[rawPosts.length - 1];
+    const newLastCreatedAt = lastDoc?.createdAt?.toMillis?.() || lastDoc?.createdAt?._seconds * 1000 || null;
+
+    const result = {
+      success: true,
+      posts: scoredPosts,
+      lastCreatedAt: newLastCreatedAt,
+      hasMore: isMainFeed ? hasMore : false
+    };
+
+    // Cache the first page of Main Feed
+    if (isMainFeed && isFirstPage) {
+      await setCache(feedCacheKey, result, CACHE_TTL.FEED_MAIN);
+    }
+
+    res.status(200).json({ success: true, ...result });
   } catch (error) {
+    console.error("getFeed error:", error);
     res.status(500).json({ success: false, message: error.message });
   }
 };
