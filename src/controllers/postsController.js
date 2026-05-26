@@ -53,35 +53,6 @@ const getFriendUids = async (uid) => {
   }
 };
 
-const computeScore = ({ post, userUid, friendUids, author }) => {
-  const GRAVITY = 1.5;
-  const likesCount = (post.likes || []).filter(id => id !== post.uid).length;
-  const commentsCount = post.commentsCount || 0;
-  const E = likesCount * 1 + commentsCount * 3;
-
-  let A = 0;
-  if (post.uid === userUid) A = 5;
-  else if (friendUids.includes(post.uid)) A = 6;
-
-  let P = 0;
-  if (author?.role === "admin") P = 6;
-  else if (author?.role === "moderator") P = 4;
-  else if (author?.premiumLevel === "max") P = 3;
-  else if (author?.premiumLevel === "pro") P = 2;
-  else if (author?.premiumLevel === "lite") P = 1;
-
-  const postTimeMs = post.createdAt?.toMillis?.()
-    ?? (post.createdAt?._seconds ? post.createdAt._seconds * 1000
-    : (post.createdAt?.seconds ? post.createdAt.seconds * 1000
-    : Date.now()));
-  const T = Math.max(0, (Date.now() - postTimeMs) / (1000 * 60 * 60));
-
-  const freshnessMultiplier = T < 1 ? 1.3 : 1.0;
-
-  const score = ((E + A + P) / Math.pow(T + 2, GRAVITY)) * freshnessMultiplier;
-  return score;
-};
-
 export const createPost = async (req, res) => {
   try {
     const uid = req.user.uid;
@@ -332,10 +303,8 @@ export const getFeed = async (req, res) => {
       filteredPosts = filteredPosts.slice(0, limit);
     }
 
-    const scoredPosts = filteredPosts.map((post) => {
-      const author = authorMetadataMap[post.uid] || {};
-      const score = computeScore({ post, userUid, friendUids, author });
-      return { ...post, _score: score, topComment: post.topComment || null };
+    const postsWithTopComment = filteredPosts.map((post) => {
+      return { ...post, topComment: post.topComment || null };
     });
 
     // Get the timestamp of the last post to use as cursor
@@ -351,7 +320,7 @@ export const getFeed = async (req, res) => {
 
     const result = {
       success: true,
-      posts: scoredPosts,
+      posts: postsWithTopComment,
       lastCreatedAt: newLastCreatedAt,
       hasMore: isMainFeed ? hasMore : false
     };
