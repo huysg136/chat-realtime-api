@@ -56,7 +56,20 @@ const getFriendUids = async (uid) => {
 export const createPost = async (req, res) => {
   try {
     const uid = req.user.uid;
-    const { content, mediaUrl, kind, displayName, photoURL, privacy, fileSize } = req.body;
+    const { content, mediaUrl, kind, privacy, fileSize } = req.body;
+
+    // Validate content
+    if (content !== undefined && content !== null) {
+      if (typeof content !== "string" || content.length > 1000) {
+        return res.status(400).json({ success: false, message: "Nội dung quá dài (tối đa 1000 ký tự)" });
+      }
+    }
+
+    // Validate fileSize: phải là số nguyên dương
+    const parsedFileSize = fileSize ? parseInt(fileSize, 10) : 0;
+    if (isNaN(parsedFileSize) || parsedFileSize < 0) {
+      return res.status(400).json({ success: false, message: "fileSize không hợp lệ" });
+    }
 
     const userDoc = await getUserData(uid);
     if (!userDoc) {
@@ -64,12 +77,12 @@ export const createPost = async (req, res) => {
     }
 
     // Check Quota if there is a file
-    if (fileSize && fileSize > 0) {
+    if (parsedFileSize > 0) {
       const level = userDoc.premiumLevel || "free";
       const limit = QUOTA_LIMIT[level] || QUOTA_LIMIT.free;
       const currentUsed = userDoc.quotaUsed || 0;
 
-      if (currentUsed + fileSize > limit) {
+      if (currentUsed + parsedFileSize > limit) {
         return res.status(400).json({
           success: false,
           message: "Dung lượng bộ nhớ đã đầy. Vui lòng nâng cấp gói."
@@ -78,7 +91,7 @@ export const createPost = async (req, res) => {
 
       // Update Quota
       await db.collection("users").doc(userDoc.id).update({
-        quotaUsed: admin.firestore.FieldValue.increment(fileSize)
+        quotaUsed: admin.firestore.FieldValue.increment(parsedFileSize)
       });
     }
 
@@ -88,12 +101,13 @@ export const createPost = async (req, res) => {
       mediaUrl: mediaUrl || null,
       kind: kind || "text",
       uid,
-      displayName: displayName || userDoc.displayName || "Người dùng",
-      photoURL: photoURL || userDoc.photoURL || "",
+      // Lấy displayName/photoURL từ Firestore, không tin body
+      displayName: userDoc.displayName || "Người dùng",
+      photoURL: userDoc.photoURL || "",
       likes: [],
       commentsCount: 0,
       privacy: privacy || "public",
-      fileSize: fileSize || 0,
+      fileSize: parsedFileSize,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
     });
 
@@ -121,6 +135,19 @@ export const updatePost = async (req, res) => {
       return res.status(400).json({ success: false, message: "Missing required fields" });
     }
 
+    // Validate content
+    if (content !== undefined && content !== null) {
+      if (typeof content !== "string" || content.length > 5000) {
+        return res.status(400).json({ success: false, message: "Nội dung quá dài (tối đa 5000 ký tự)" });
+      }
+    }
+
+    // Validate fileSize
+    const parsedFileSize = fileSize ? parseInt(fileSize, 10) : 0;
+    if (isNaN(parsedFileSize) || parsedFileSize < 0) {
+      return res.status(400).json({ success: false, message: "fileSize không hợp lệ" });
+    }
+
     const postRef = db.collection("posts").doc(postId);
     const postDoc = await postRef.get();
 
@@ -144,16 +171,14 @@ export const updatePost = async (req, res) => {
     };
 
     // Update Quota if fileSize is provided (new file uploaded)
-    if (fileSize && fileSize > 0) {
+    if (parsedFileSize > 0) {
       const userDoc = await getUserData(uid);
       if (userDoc) {
         const level = userDoc.premiumLevel || "free";
         const limit = QUOTA_LIMIT[level] || QUOTA_LIMIT.free;
         const currentUsed = userDoc.quotaUsed || 0;
 
-        // Note: This logic assumes we add to quota. 
-        // In a real scenario, we might want to subtract the old file size if it's being replaced.
-        if (currentUsed + fileSize > limit) {
+        if (currentUsed + parsedFileSize > limit) {
           return res.status(400).json({
             success: false,
             message: "Dung lượng bộ nhớ đã đầy. Vui lòng nâng cấp gói."
@@ -161,7 +186,7 @@ export const updatePost = async (req, res) => {
         }
 
         await db.collection("users").doc(userDoc.id).update({
-          quotaUsed: admin.firestore.FieldValue.increment(fileSize)
+          quotaUsed: admin.firestore.FieldValue.increment(parsedFileSize)
         });
       }
     }
@@ -341,7 +366,7 @@ export const likePost = async (req, res) => {
   try {
     const { postId } = req.params;
     const uid = req.user.uid;
-    const { displayName, photoURL } = req.body;
+    // Không nhận displayName/photoURL từ body — lấy từ Firestore
 
     if (!postId) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
@@ -364,13 +389,15 @@ export const likePost = async (req, res) => {
       });
 
       if (postData.uid !== uid) {
+        // Lấy thông tin sender từ Firestore
+        const senderData = await getUserData(uid);
         await db.collection("notifications").add({
           senderUid: uid,
           receiverUid: postData.uid,
           type: "post_like",
           postId: postId,
-          senderName: displayName || "Ai đó",
-          senderPhoto: photoURL || "",
+          senderName: senderData?.displayName || "Ai đó",
+          senderPhoto: senderData?.photoURL || "",
           isRead: false,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
@@ -414,10 +441,15 @@ export const commentPost = async (req, res) => {
   try {
     const { postId } = req.params;
     const uid = req.user.uid;
-    const { parentId, replyToUid, replyToName, content, displayName, photoURL, postAuthorUid } = req.body;
+    const { parentId, replyToUid, replyToName, content, postAuthorUid } = req.body;
 
     if (!postId || !content) {
       return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Validate content length
+    if (typeof content !== "string" || content.trim().length === 0 || content.length > 2000) {
+      return res.status(400).json({ success: false, message: "Nội dung bình luận không hợp lệ (tối đa 2000 ký tự)" });
     }
 
     const postDoc = await db.collection("posts").doc(postId).get();
@@ -426,15 +458,20 @@ export const commentPost = async (req, res) => {
     }
     const postData = postDoc.data();
 
+    // Lấy displayName/photoURL từ Firestore, không tin body
+    const userDoc = await getUserData(uid);
+    const displayName = userDoc?.displayName || "Người dùng";
+    const photoURL = userDoc?.photoURL || "";
+
     const commentRef = await db.collection("comments").add({
       postId,
       parentId: parentId || null,
       replyToUid: replyToUid || null,
       replyToName: replyToName || null,
-      content,
+      content: content.trim(),
       uid,
-      displayName: displayName || "Người dùng",
-      photoURL: photoURL || "",
+      displayName,
+      photoURL,
       likes: [],
       likesCount: 0,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -452,10 +489,10 @@ export const commentPost = async (req, res) => {
             id: commentRef.id,
             postId,
             parentId: null,
-            content,
+            content: content.trim(),
             uid,
-            displayName: displayName || "Người dùng",
-            photoURL: photoURL || "",
+            displayName,
+            photoURL,
             likes: [],
             likesCount: 0,
             createdAt: admin.firestore.Timestamp.now()
@@ -472,8 +509,8 @@ export const commentPost = async (req, res) => {
         receiverUid: targetUid,
         type: "post_comment",
         postId: postId,
-        senderName: displayName || "Ai đó",
-        senderPhoto: photoURL || "",
+        senderName: displayName,
+        senderPhoto: photoURL,
         isRead: false,
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
       });

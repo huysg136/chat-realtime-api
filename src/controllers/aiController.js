@@ -4,7 +4,13 @@ export class AIController {
     async askGroq(req, res, next) {
         try {
             const { prompt } = req.body;
-            const result = await aiService.askGroq(prompt);
+            if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+                return res.status(400).json({ success: false, message: "prompt is required" });
+            }
+            if (prompt.length > 2000) {
+                return res.status(400).json({ success: false, message: "prompt too long (max 2000 chars)" });
+            }
+            const result = await aiService.askGroq(prompt.trim());
             res.json(result);
         } catch (err) {
             next(err);
@@ -14,7 +20,13 @@ export class AIController {
     async askGemini(req, res, next) {
         try {
             const { prompt } = req.body;
-            const result = await aiService.askGemini(prompt);
+            if (!prompt || typeof prompt !== "string" || prompt.trim().length === 0) {
+                return res.status(400).json({ success: false, message: "prompt is required" });
+            }
+            if (prompt.length > 1000) {
+                return res.status(400).json({ success: false, message: "prompt too long (max 1000 chars)" });
+            }
+            const result = await aiService.askGemini(prompt.trim());
             res.json(result);
         } catch (err) {
             next(err);

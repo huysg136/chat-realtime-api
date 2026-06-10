@@ -1,12 +1,16 @@
 import express from "express";
 import { stringeeController } from "../controllers/stringeeController.js";
+import { stringeeTokenLimiter, stringeeRoomLimiter } from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
 
-router.get("/token", stringeeController.getClientToken.bind(stringeeController));
-router.post("/rest-token", stringeeController.getRestToken.bind(stringeeController));
-router.post("/create-room", stringeeController.createRoom.bind(stringeeController));
-router.post("/generate-room-token", stringeeController.getRoomToken.bind(stringeeController));
-router.get("/list-rooms", stringeeController.listRooms.bind(stringeeController));
+// Lấy token: 20/min
+router.get("/token", stringeeTokenLimiter, stringeeController.getClientToken.bind(stringeeController));
+router.post("/rest-token", stringeeTokenLimiter, stringeeController.getRestToken.bind(stringeeController));
+
+// Room operations: 10/min
+router.post("/create-room", stringeeRoomLimiter, stringeeController.createRoom.bind(stringeeController));
+router.post("/generate-room-token", stringeeRoomLimiter, stringeeController.getRoomToken.bind(stringeeController));
+router.get("/list-rooms", stringeeTokenLimiter, stringeeController.listRooms.bind(stringeeController));
 
 export default router;

@@ -10,20 +10,30 @@ import {
   getUnreadCount,
   getFriendSuggestions,
 } from "../controllers/friendsController.js";
+import {
+  friendRequestLimiter,
+  friendActionLimiter,
+  notificationLimiter,
+  suggestionLimiter,
+} from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
 
-router.get("/suggestions", getFriendSuggestions);
-router.get("/notifications/unread-count", getUnreadCount);
+// Friend suggestions: 10/min
+router.get("/suggestions", suggestionLimiter, getFriendSuggestions);
 
+// Notifications: 30/min
+router.get("/notifications/unread-count", notificationLimiter, getUnreadCount);
+router.patch("/notifications/:notificationId/read", notificationLimiter, markNotificationAsRead);
+router.post("/notifications/read-all", notificationLimiter, markAllNotificationsAsRead);
 
-router.post("/request", sendFriendRequest);
-router.post("/accept", acceptFriendRequest);
-router.post("/reject", rejectFriendRequest);
-router.post("/cancel", cancelFriendRequest);
-router.post("/unfriend", unfriend);
+// Friend actions — request chặt nhất: 10/min
+router.post("/request", friendRequestLimiter, sendFriendRequest);
 
-router.patch("/notifications/:notificationId/read", markNotificationAsRead);
-router.post("/notifications/read-all", markAllNotificationsAsRead);
+// Accept/Reject/Cancel/Unfriend: 20/min
+router.post("/accept", friendActionLimiter, acceptFriendRequest);
+router.post("/reject", friendActionLimiter, rejectFriendRequest);
+router.post("/cancel", friendActionLimiter, cancelFriendRequest);
+router.post("/unfriend", friendActionLimiter, unfriend);
 
 export default router;

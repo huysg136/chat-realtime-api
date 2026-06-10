@@ -4,10 +4,8 @@ import { AppError } from "../utils/AppError.js";
 export class StringeeController {
     getClientToken(req, res, next) {
         try {
-            const { uid } = req.query;
-            if (!uid) {
-                throw new AppError("Missing uid parameter", 400);
-            }
+            // uid luôn là người đang đăng nhập
+            const uid = req.user.uid;
 
             const { token, expiresIn } = stringeeService.generateClientToken(uid);
 
@@ -50,9 +48,10 @@ export class StringeeController {
 
     getRoomToken(req, res, next) {
         try {
-            const { roomId, userId } = req.body;
+            const { roomId } = req.body;
+            // userId luôn là người đang đăng nhập
+            const userId = req.user.uid;
             if (!roomId) throw new AppError("Missing roomId", 400);
-            if (!userId) throw new AppError("Missing userId", 400);
 
             const { token, expiresIn } = stringeeService.generateRoomToken(roomId, userId);
 

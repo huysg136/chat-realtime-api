@@ -10,9 +10,6 @@ import {
   getUnreadCountKey,
 } from "../utils/cache.js";
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-/** Tạo pairKey chuẩn — [A,B] === [B,A] */
 const makePairKey = (uid1, uid2) => [uid1, uid2].sort().join("_");
 
 /**
@@ -44,13 +41,13 @@ const getUserData = async (uid) => {
   }
 };
 
-// ─── Friend Request ───────────────────────────────────────────────────────────
-
 export const sendFriendRequest = async (req, res) => {
   try {
-    const { fromUid, toUid } = req.body;
+    // fromUid luôn là người đang đăng nhập
+    const fromUid = req.user.uid;
+    const { toUid } = req.body;
 
-    if (!fromUid || !toUid || fromUid === toUid) {
+    if (!toUid || fromUid === toUid) {
       return res.status(400).json({ success: false, message: "Invalid UIDs" });
     }
 
@@ -106,12 +103,23 @@ export const sendFriendRequest = async (req, res) => {
 
 export const acceptFriendRequest = async (req, res) => {
   try {
-    const { requestId, fromUid, myUid } = req.body;
+    // myUid luôn là người đang đăng nhập
+    const myUid = req.user.uid;
+    const { requestId, fromUid } = req.body;
 
-    if (!requestId || !fromUid || !myUid) {
+    if (!requestId || !fromUid) {
       return res
         .status(400)
         .json({ success: false, message: "Missing required fields" });
+    }
+
+    // Verify request này thực sự gửi tới mình
+    const requestDoc = await db.collection("friendRequests").doc(requestId).get();
+    if (!requestDoc.exists) {
+      return res.status(404).json({ success: false, message: "Friend request not found" });
+    }
+    if (requestDoc.data().toUid !== myUid) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
     }
 
     const pairKey = makePairKey(fromUid, myUid);
@@ -170,7 +178,8 @@ export const acceptFriendRequest = async (req, res) => {
 
 export const rejectFriendRequest = async (req, res) => {
   try {
-    const { requestId, myUid } = req.body;
+    const myUid = req.user.uid;
+    const { requestId } = req.body;
 
     if (!requestId) {
       return res
@@ -178,14 +187,22 @@ export const rejectFriendRequest = async (req, res) => {
         .json({ success: false, message: "Missing requestId" });
     }
 
-    await db.collection("friendRequests").doc(requestId).update({
-      status: "rejected",
-      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-    });
-
-    if (myUid) {
-      await deleteCache(`suggestions:${myUid}`);
+    // Verify request này thực sự gửi tới mình
+    const requestDoc = await db.collection("friendRequests").doc(requestId).get();
+    if (!requestDoc.exists) {
+      return res.status(404).json({ success: false, message: "Friend request not found" });
     }
+    if (requestDoc.data().toUid !== myUid) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
+    await Promise.all([
+      db.collection("friendRequests").doc(requestId).update({
+        status: "rejected",
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      }),
+      deleteCache(`suggestions:${myUid}`),
+    ]);
 
     return res.status(200).json({ success: true });
   } catch (error) {
@@ -196,15 +213,17 @@ export const rejectFriendRequest = async (req, res) => {
 
 export const cancelFriendRequest = async (req, res) => {
   try {
-    const { fromUid, toUid } = req.body;
+    // fromUid luôn là người đang đăng nhập
+    const fromUid = req.user.uid;
+    const { toUid } = req.body;
 
-    if (!fromUid || !toUid) {
+    if (!toUid) {
       return res
         .status(400)
-        .json({ success: false, message: "Missing fromUid or toUid" });
+        .json({ success: false, message: "Missing toUid" });
     }
 
-    // Tìm lời mời đang pending
+    // Tìm lời mời đang pending (chỉ của chính mình)
     const snapshot = await db
       .collection("friendRequests")
       .where("fromUid", "==", fromUid)
@@ -255,12 +274,14 @@ export const cancelFriendRequest = async (req, res) => {
 
 export const unfriend = async (req, res) => {
   try {
-    const { myUid, targetUid } = req.body;
+    // myUid luôn là người đang đăng nhập
+    const myUid = req.user.uid;
+    const { targetUid } = req.body;
 
-    if (!myUid || !targetUid) {
+    if (!targetUid) {
       return res
         .status(400)
-        .json({ success: false, message: "Missing UIDs" });
+        .json({ success: false, message: "Missing targetUid" });
     }
 
     const pairKey = makePairKey(myUid, targetUid);
@@ -297,8 +318,8 @@ export const unfriend = async (req, res) => {
 
 export const markNotificationAsRead = async (req, res) => {
   try {
+    const uid = req.user.uid;
     const { notificationId } = req.params;
-    const { uid } = req.query;
 
     if (!notificationId) {
       return res
@@ -315,11 +336,16 @@ export const markNotificationAsRead = async (req, res) => {
         .json({ success: false, message: "Notification not found" });
     }
 
+    // Chỉ được đánh dấu notification của chính mình
+    if (notifDoc.data().receiverUid !== uid) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
+
     // Chỉ update + decrement nếu thực sự chưa đọc
     if (!notifDoc.data().isRead) {
       await Promise.all([
         notifRef.update({ isRead: true }),
-        uid ? decrementUnreadCount(uid) : Promise.resolve(),
+        decrementUnreadCount(uid),
       ]);
     }
 
@@ -332,11 +358,8 @@ export const markNotificationAsRead = async (req, res) => {
 
 export const markAllNotificationsAsRead = async (req, res) => {
   try {
-    const { uid } = req.body;
-
-    if (!uid) {
-      return res.status(400).json({ success: false, message: "Missing uid" });
-    }
+    // uid luôn là người đang đăng nhập
+    const uid = req.user.uid;
 
     const snapshot = await db
       .collection("notifications")
@@ -364,11 +387,8 @@ export const markAllNotificationsAsRead = async (req, res) => {
 
 export const getUnreadCount = async (req, res) => {
   try {
-    const { uid } = req.query;
-
-    if (!uid) {
-      return res.status(400).json({ success: false, message: "Missing uid" });
-    }
+    // uid luôn là người đang đăng nhập
+    const uid = req.user.uid;
 
     // 1. Ưu tiên Redis (nhanh, rẻ)
     const cacheKey = getUnreadCountKey(uid);
@@ -398,17 +418,10 @@ export const getUnreadCount = async (req, res) => {
   }
 };
 
-// ─── Friend Suggestions ───────────────────────────────────────────────────────
-
 export const getFriendSuggestions = async (req, res) => {
   try {
-    const { uid } = req.query;
-
-    if (!uid) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Missing uid" });
-    }
+    // uid luôn là người đang đăng nhập
+    const uid = req.user.uid;
 
     // 1. Cache hit → trả về ngay
     const cacheKey = `suggestions:${uid}`;
