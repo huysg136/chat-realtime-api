@@ -4,6 +4,7 @@ import cors from "cors";
 import { config } from "./src/config/index.js";
 import { globalErrorHandler } from "./src/middlewares/errorHandler.js";
 import { rateLimiter } from "./src/middlewares/rateLimiter.js";
+import { apiKeyAuth } from "./src/middlewares/apiKeyAuth.js";
 
 const app = express();
 const server = http.createServer(app);
@@ -25,7 +26,8 @@ const allowedOrigins = isProduction
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Không cho phép request không có Origin (Postman, curl, server-to-server)
+      if (origin && allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
         callback(new Error("Not allowed by CORS"));
@@ -37,6 +39,7 @@ app.use(
 );
 app.use(express.json());
 app.use(rateLimiter);
+app.use(apiKeyAuth); // Chặn mọi request không có x-api-key hợp lệ
 // routes
 app.use("/api/stringee", stringeeRoutes);
 app.use(uploadRoutes);
