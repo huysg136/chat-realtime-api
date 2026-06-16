@@ -3,10 +3,18 @@ import { FieldValue } from "firebase-admin/firestore";
 import { AppError } from "../utils/AppError.js";
 import { uploadService } from "../services/uploadService.js";
 
-const PLAN_LIMITS = {
-  free:    5  * 1024 * 1024,
-  basic:   20 * 1024 * 1024,
-  premium: 100 * 1024 * 1024,
+const FILE_SIZE_LIMIT = {
+  free: 3 * 1024 * 1024,
+  lite: 25 * 1024 * 1024,
+  pro: 100 * 1024 * 1024,
+  max: 200 * 1024 * 1024,
+};
+
+const QUOTA_LIMIT = {
+  free: 50 * 1024 * 1024,
+  lite: 2 * 1024 * 1024 * 1024,
+  pro: 10 * 1024 * 1024 * 1024,
+  max: 30 * 1024 * 1024 * 1024,
 };
 
 export class UploadController {
@@ -28,18 +36,19 @@ export class UploadController {
             const userData = snapshot.docs[0].data();
             const plan = userData.premiumLevel || "free";
             const quotaUsed = userData.quotaUsed || 0;
-            const maxSize = PLAN_LIMITS[plan] ?? PLAN_LIMITS.free;
+            const maxFileSize = FILE_SIZE_LIMIT[plan] ?? FILE_SIZE_LIMIT.free;
+            const maxQuota = QUOTA_LIMIT[plan] ?? QUOTA_LIMIT.free;
 
             // Chặn tại đây
-            if (fileSize > maxSize) {
-                return next(new AppError(`File vượt giới hạn gói ${plan.toUpperCase()} (${maxSize / 1024 / 1024}MB)`, 400));
+            if (fileSize > maxFileSize) {
+                return next(new AppError(`File vượt giới hạn gói ${plan.toUpperCase()} (${maxFileSize / 1024 / 1024}MB)`, 400));
             }
-            if (quotaUsed + fileSize > maxSize) {
+            if (quotaUsed + fileSize > maxQuota) {
                 return next(new AppError("Bạn đã hết dung lượng. Nâng cấp gói để tiếp tục.", 400));
             }
 
             const result = await uploadService.generatePresignedUrl(
-                fileName, fileType, folder, fileSize, maxSize
+                fileName, fileType, folder, fileSize, maxFileSize
             );
 
             // Tăng quota sau khi cấp URL
