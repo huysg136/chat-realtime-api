@@ -4,13 +4,16 @@ import { config, r2Client } from "../config/index.js";
 import { AppError } from "../utils/AppError.js";
 
 export class UploadService {
-    async generatePresignedUrl(fileName, fileType, folder = "uploads") {
+    async generatePresignedUrl(fileName, fileType, folder = "uploads", fileSize = 0, maxSize = 5 * 1024 * 1024) {
         if (!fileName || !fileType) {
             throw new AppError("Missing fileName or fileType", 400);
         }
 
-        const key = `${folder}/${Date.now()}_${fileName}`;
+        if (fileSize > maxSize) {
+            throw new AppError(`File vượt giới hạn ${maxSize / 1024 / 1024}MB`, 400);
+        }
 
+        const key = `${folder}/${Date.now()}_${fileName}`;
         const command = new PutObjectCommand({
             Bucket: config.r2.bucket,
             Key: key,
@@ -18,7 +21,7 @@ export class UploadService {
         });
 
         try {
-            const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 300 });
+            const uploadUrl = await getSignedUrl(r2Client, command, { expiresIn: 60 }); // giảm TTL xuống 60s
             const fileUrl = `${config.r2.publicDomain}/${key}`;
             return { uploadUrl, fileUrl };
         } catch (err) {
