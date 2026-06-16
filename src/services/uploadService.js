@@ -18,6 +18,7 @@ export class UploadService {
             Bucket: config.r2.bucket,
             Key: key,
             ContentType: fileType,
+            ContentLength: Number(fileSize),
         });
 
         try {
