@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { chatController } from "../controllers/chatController.js";
-import { typingReadLimiter, typingWriteLimiter } from "../middlewares/rateLimiter";
+import { typingReadLimiter, typingWriteLimiter } from "../middlewares/rateLimiter.js";
 
 const router = Router();
 

@@ -1,4 +1,4 @@
-import { redis } from "../config/redis.js";
+import redis from "../config/redis.js";
 
 const TYPING_TTL_SEC = 2;
 const typingKey = (roomId, uid) => `typing:${roomId}`;

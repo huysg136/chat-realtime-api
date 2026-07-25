@@ -1,6 +1,6 @@
-import { chatService } from "../services/chatService";
+import { chatService } from "../services/chatService.js";
 
-async function postTying(req, res){
+async function postTyping(req, res){
     try {
         const uid = req.user.uid;
         const { roomId, action } = req.body;
