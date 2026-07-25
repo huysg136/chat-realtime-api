@@ -63,53 +63,45 @@ const createRateLimiter = ({
   };
 };
 
-// ─── Global: 200 req/min theo IP ─────────────────────────────────────────────
+// global: 200 req/min
 export const rateLimiter = createRateLimiter({
-  limit: 100,
+  limit: 200,
   windowMs: 60,
   prefix: "rl:global",
 });
 
-// ─── Posts ────────────────────────────────────────────────────────────────────
-/** Tạo bài viết: 2 bài/phút */
+// POSTS
 export const createPostLimiter = createRateLimiter({
   limit: 2,
   windowMs: 60,
   prefix: "rl:post:create",
-  message: "Bạn đăng bài quá nhanh. Vui lòng chờ một chút.",
 });
 
-/** Xóa/Sửa bài: 10 lần/phút */
 export const mutatePostLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:post:mutate",
 });
 
-/** Like bài / like comment: 10 lần/phút */
 export const likeLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:like",
 });
 
-/** Bình luận: 5 lần/phút */
 export const commentLimiter = createRateLimiter({
   limit: 5,
   windowMs: 60,
   prefix: "rl:comment",
-  message: "Bạn bình luận quá nhanh. Vui lòng chờ một chút.",
 });
 
-/** Xem feed: 10 lần/phút */
 export const feedLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:feed",
 });
 
-// ─── Friends ──────────────────────────────────────────────────────────────────
-/** Gửi lời mời kết bạn: 10 lần/phút */
+// FRIENDS
 export const friendRequestLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
@@ -117,56 +109,62 @@ export const friendRequestLimiter = createRateLimiter({
   message: "Bạn gửi lời mời kết bạn quá nhanh. Vui lòng thử lại sau.",
 });
 
-/** Accept/Reject/Cancel/Unfriend: 10 lần/phút */
 export const friendActionLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:friend:action",
 });
 
-/** Notifications: 10 lần/phút */
+// NOTIFICATIONS
 export const notificationLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:notification",
 });
 
-/** Friend suggestions: 2 lần/phút */
+// FRIEND SUGGESTION
 export const suggestionLimiter = createRateLimiter({
   limit: 2,
   windowMs: 60,
   prefix: "rl:friend:suggestion",
 });
 
-// ─── AI ───────────────────────────────────────────────────────────────────────
-/** Groq / Gemini: 3 req/phút — tốn tiền, chặt nhất */
+// AI API
 export const aiLimiter = createRateLimiter({
   limit: 3,
   windowMs: 60,
   prefix: "rl:ai",
-  message: "Bạn đã dùng AI quá nhiều. Vui lòng thử lại sau 1 phút.",
 });
 
-// ─── Upload ───────────────────────────────────────────────────────────────────
-/** Upload file: 1 lần/phút */
+// UPLOAD TO R2
 export const uploadLimiter = createRateLimiter({
   limit: 3,
   windowMs: 60,
   prefix: "rl:upload",
-  message: "Bạn upload quá nhanh. Vui lòng thử lại sau.",
 });
 
-// ─── Stringee ─────────────────────────────────────────────────────────────────
-/** Lấy token Stringee: 10 lần/phút */
+// CALL VIDEO STRINGEE (GET TOKEN)
 export const stringeeTokenLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:stringee:token",
 });
 
-/** Tạo/join room: 10 lần/phút */
 export const stringeeRoomLimiter = createRateLimiter({
   limit: 10,
   windowMs: 60,
   prefix: "rl:stringee:room",
+});
+
+// CHAT (TYPING)
+export const typingWriteLimiter = createRateLimiter({
+  limit: 60,
+  windowMs: 60,
+  prefix: "rl:typing:write",
+});
+
+export const typingReadLimiter = createRateLimiter({
+  limit: 90, 
+  windowMs: 60,
+  prefix: "rl:typing:read",
 });
