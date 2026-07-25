@@ -1,6 +1,6 @@
 import redis from "../config/redis.js";
 
-const TYPING_TTL_SEC = 2;
+const TYPING_TTL_SEC = 5;
 const typingKey = (roomId, uid) => `typing:${roomId}`;
 
 // đánh dấu user bắt đầu gõ trong room (score = timestamp để lọc theo thời gian)
