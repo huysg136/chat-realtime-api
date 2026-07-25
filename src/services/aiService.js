@@ -7,12 +7,10 @@ export class AIService {
 
         const API_KEY = config.ai.groqApiKey;
 
-        // Ưu tiên từ cao xuống thấp
+        // Ưu tiên các model Groq chuẩn
         const models = [
-            "meta-llama/llama-4-maverick-17b-128e-instruct", // Llama 4 mạnh nhất
-            "meta-llama/llama-4-scout-17b-16e-instruct",     // Llama 4 nhẹ hơn
-            "llama-3.3-70b-versatile",                        // Llama 3.3 70b
-            "llama-3.1-8b-instant",                           // Fallback cuối
+            "llama-3.3-70b-versatile",
+            "llama-3.1-8b-instant",
         ];
 
         for (const model of models) {
@@ -32,14 +30,12 @@ export class AIService {
                     }
                 );
 
-                // Rate limit hoặc hết quota → thử model tiếp
                 if (response.status === 429) {
                     continue;
                 }
 
                 const data = await response.json();
 
-                // Model báo lỗi (ví dụ hết token ngày) → thử tiếp
                 if (data.error) {
                     continue;
                 }
@@ -62,8 +58,9 @@ export class AIService {
 
         const API_KEY = config.ai.geminiApiKey;
 
+        // Sử dụng model Gemini 2.0 Flash hoặc Gemini 1.5 Flash chuẩn của Google
         const response = await fetch(
-            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
             {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
