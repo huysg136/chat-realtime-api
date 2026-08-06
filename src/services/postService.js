@@ -92,8 +92,16 @@ export class PostService {
     });
 
     const now = Date.now();
+    // Cập nhật timestamp bài mới nhất toàn cục (dùng bởi checkNewPosts)
     await setCache("feed:global:latest_post_time", now, CACHE_TTL.GLOBAL_TIMESTAMP);
-    await deleteCache(`feed:${uid}:main`);
+
+    // Xóa feed cache của user vừa đăng + tất cả bạn bè song song
+    // getFriendUids đã dùng Redis cache (friends:<uid>) → không tốn Firestore read
+    const friendUids = await this.getFriendUids(uid);
+    await Promise.all([
+      deleteCache(`feed:${uid}:main`),
+      ...friendUids.map(fUid => deleteCache(`feed:${fUid}:main`)),
+    ]);
 
     return { postId: postRef.id };
   }
@@ -573,7 +581,12 @@ export class PostService {
       );
     }
 
-    await deleteCache(`feed:${uid}:main`);
+    // Xóa feed cache của user vừa xóa bài + tất cả bạn bè song song
+    const friendUids = await this.getFriendUids(uid);
+    await Promise.all([
+      deleteCache(`feed:${uid}:main`),
+      ...friendUids.map(fUid => deleteCache(`feed:${fUid}:main`)),
+    ]);
 
     const now = Date.now();
     await setCache("feed:global:latest_post_time", now, CACHE_TTL.GLOBAL_TIMESTAMP);
