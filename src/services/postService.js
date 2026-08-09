@@ -197,7 +197,17 @@ export class PostService {
       }
       queryRef = queryRef.orderBy("createdAt", "desc").limit(limit * 2);
     } else if (filterUserId) {
-      queryRef = queryRef.where("uid", "==", filterUserId).orderBy("createdAt", "desc");
+      if (lastCreatedAt) {
+        const startTimestamp = admin.firestore.Timestamp.fromMillis(parseInt(lastCreatedAt));
+        queryRef = queryRef.where("uid", "==", filterUserId)
+                            .where("createdAt", "<", startTimestamp)
+                            .orderBy("createdAt", "desc")
+                            .limit(limit * 2);
+      } else {
+        queryRef = queryRef.where("uid", "==", filterUserId)
+                            .orderBy("createdAt", "desc")
+                            .limit(limit * 2);
+      }
     } else {
       queryRef = queryRef.orderBy("createdAt", "desc").limit(100);
     }
@@ -261,10 +271,9 @@ export class PostService {
       });
 
     let hasMore = false;
-    if (isMainFeed) {
+    if (isMainFeed || filterUserId) {
       const hitDbLimit = rawPosts.length === limit * 2;
       const hasExtraFiltered = filteredPosts.length > limit;
-
       hasMore = hitDbLimit || hasExtraFiltered;
       filteredPosts = filteredPosts.slice(0, limit);
     }
@@ -292,7 +301,7 @@ export class PostService {
     const result = {
       posts: postsWithTopComment,
       lastCreatedAt: newLastCreatedAt,
-      hasMore: isMainFeed ? hasMore : false,
+      hasMore: (isMainFeed || filterUserId) ? hasMore : false,
     };
 
     if (isMainFeed && isFirstPage) {
@@ -581,7 +590,6 @@ export class PostService {
       );
     }
 
-    // Xóa feed cache của user vừa xóa bài + tất cả bạn bè song song
     const friendUids = await this.getFriendUids(uid);
     await Promise.all([
       deleteCache(`feed:${uid}:main`),
