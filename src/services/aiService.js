@@ -65,50 +65,30 @@ export class AIService {
 
         const API_KEY = config.ai.geminiApiKey;
 
-        // Danh sách model Gemini ổn định của Google
-        const geminiModels = [
-            "gemini-1.5-flash",
-            "gemini-1.5-flash-8b",
-            "gemini-2.5-flash",
-            "gemini-1.5-pro",
-        ];
-
-        let lastError = null;
-
-        for (const model of geminiModels) {
-            try {
-                const response = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`,
-                    {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            contents: [{ parts: [{ text: prompt }] }]
-                        })
-                    }
-                );
-
-                const data = await response.json();
-
-                if (data.error) {
-                    lastError = data.error.message;
-                    continue;
-                }
-
-                const answer = data.candidates?.[0]?.content?.parts
-                    ?.map(p => p.text)
-                    .join("\n");
-
-                if (!answer) continue;
-
-                return { answer };
-            } catch (err) {
-                lastError = err.message;
-                continue;
+        const response = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${API_KEY}`,
+            {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: prompt }] }]
+                })
             }
+        );
+
+        const data = await response.json();
+
+        if (data.error) {
+            throw new AppError(data.error.message, 400);
         }
 
-        throw new AppError(lastError || "No response from Gemini models", 500);
+        const answer = data.candidates?.[0]?.content?.parts
+            ?.map(p => p.text)
+            .join("\n");
+
+        if (!answer) throw new AppError("No response from Gemini", 500);
+
+        return { answer };
     }
 
     async listModels() {
