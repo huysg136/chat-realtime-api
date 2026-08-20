@@ -1,6 +1,6 @@
 import express from "express";
-import { stringeeController } from "../controllers/stringeeController.js";
-import { stringeeTokenLimiter, stringeeRoomLimiter } from "../middlewares/rateLimiter.js";
+import { stringeeController } from "./stringee.controller.js";
+import { stringeeTokenLimiter, stringeeRoomLimiter } from "../../middlewares/rateLimiter.js";
 
 const router = express.Router();
 

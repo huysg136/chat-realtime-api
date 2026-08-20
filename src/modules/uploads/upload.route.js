@@ -1,7 +1,7 @@
 import express from "express";
 import multer from "multer";
-import { uploadController } from "../controllers/uploadController.js";
-import { uploadLimiter } from "../middlewares/rateLimiter.js";
+import { uploadController } from "./upload.controller.js";
+import { uploadLimiter } from "../../middlewares/rateLimiter.js";
 
 const router = express.Router();
 

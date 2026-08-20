@@ -1,4 +1,4 @@
-import { db, admin } from "../config/firebase.js";
+import { db, admin } from "../../config/firebase.js";
 import {
   getCache,
   setCache,
@@ -8,9 +8,9 @@ import {
   decrementUnreadCount,
   setUnreadCount,
   getUnreadCountKey,
-} from "../utils/cache.js";
-import { getUserData } from "./userService.js";
-import { AppError } from "../utils/AppError.js";
+} from "../../utils/cache.js";
+import { getUserData } from "../users/user.service.js";
+import { AppError } from "../../utils/AppError.js";
 
 const makePairKey = (uid1, uid2) => [uid1, uid2].sort().join("_");
 

@@ -1,5 +1,5 @@
-import { mailService } from "../services/mailService.js";
-import { AppError } from "../utils/AppError.js";
+import { mailService } from "./mail.service.js";
+import { AppError } from "../../utils/AppError.js";
 
 export class MailController {
     async notifyReportResult(req, res, next) {

@@ -1,6 +1,6 @@
 import express from "express";
-import { aiController } from "../controllers/aiController.js";
-import { aiLimiter } from "../middlewares/rateLimiter.js";
+import { aiController } from "./ai.controller.js";
+import { aiLimiter } from "../../middlewares/rateLimiter.js";
 
 const router = express.Router();
 

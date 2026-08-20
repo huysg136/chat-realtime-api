@@ -1,7 +1,7 @@
-import { db } from "../config/firebase.js";
+import { db } from "../../config/firebase.js";
 import { FieldValue } from "firebase-admin/firestore";
-import { AppError } from "../utils/AppError.js";
-import { uploadService } from "../services/uploadService.js";
+import { AppError } from "../../utils/AppError.js";
+import { uploadService } from "./upload.service.js";
 
 const FILE_SIZE_LIMIT = {
   free: 3 * 1024 * 1024,

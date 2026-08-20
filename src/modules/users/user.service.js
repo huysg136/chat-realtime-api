@@ -1,5 +1,5 @@
-import { db } from "../config/firebase.js";
-import { getCache, setCache, CACHE_TTL } from "../utils/cache.js";
+import { db } from "../../config/firebase.js";
+import { getCache, setCache, CACHE_TTL } from "../../utils/cache.js";
 
 /**
  * Lấy metadata user từ cache Redis trước, fallback Firestore.

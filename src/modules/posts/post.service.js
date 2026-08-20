@@ -1,4 +1,4 @@
-import { db, admin } from "../config/firebase.js";
+import { db, admin } from "../../config/firebase.js";
 import {
   getCache,
   setCache,
@@ -7,9 +7,9 @@ import {
   CACHE_TTL,
   incrementUnreadCount,
   decrementUnreadCount,
-} from "../utils/cache.js";
-import { getUserData } from "./userService.js";
-import { AppError } from "../utils/AppError.js";
+} from "../../utils/cache.js";
+import { getUserData } from "../users/user.service.js";
+import { AppError } from "../../utils/AppError.js";
 
 const QUOTA_LIMIT = {
   free: 100 * 1024 * 1024,

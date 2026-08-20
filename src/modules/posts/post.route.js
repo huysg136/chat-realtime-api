@@ -1,12 +1,12 @@
 import express from "express";
-import { createPost, getFeed, likePost, commentPost, likeComment, checkNewPosts, deleteComment, deletePost, updatePost } from "../controllers/postsController.js";
+import { createPost, getFeed, likePost, commentPost, likeComment, checkNewPosts, deleteComment, deletePost, updatePost } from "./post.controller.js";
 import {
   createPostLimiter,
   mutatePostLimiter,
   feedLimiter,
   likeLimiter,
   commentLimiter,
-} from "../middlewares/rateLimiter.js";
+} from "../../middlewares/rateLimiter.js";
 
 const router = express.Router();
 

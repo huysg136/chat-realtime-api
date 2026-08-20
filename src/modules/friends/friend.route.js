@@ -9,13 +9,13 @@ import {
   markAllNotificationsAsRead,
   getUnreadCount,
   getFriendSuggestions,
-} from "../controllers/friendsController.js";
+} from "./friend.controller.js";
 import {
   friendRequestLimiter,
   friendActionLimiter,
   notificationLimiter,
   suggestionLimiter,
-} from "../middlewares/rateLimiter.js";
+} from "../../middlewares/rateLimiter.js";
 
 const router = express.Router();
 

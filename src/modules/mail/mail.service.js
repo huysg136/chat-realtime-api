@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { AppError } from "../utils/AppError.js";
+import { AppError } from "../../utils/AppError.js";
 
 // ==================== HELPERS ====================
 

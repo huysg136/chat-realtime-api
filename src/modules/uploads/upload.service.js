@@ -1,7 +1,7 @@
 import { PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { config, r2Client } from "../config/index.js";
-import { AppError } from "../utils/AppError.js";
+import { config, r2Client } from "../../config/index.js";
+import { AppError } from "../../utils/AppError.js";
 
 export class UploadService {
     async generatePresignedUrl(fileName, fileType, folder = "uploads", fileSize = 0, maxSize = 5 * 1024 * 1024) {

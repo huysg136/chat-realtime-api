@@ -2,10 +2,12 @@
   "name": "chat-realtime-api",
   "version": "1.0.0",
   "type": "module",
-  "main": "server.js",
+  "main": "src/server.js",
   "scripts": {
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
   },
   "keywords": [],
   "author": "",
@@ -14,22 +16,15 @@
   "dependencies": {
     "@aws-sdk/client-s3": "^3.917.0",
     "@aws-sdk/s3-request-presigner": "^3.978.0",
-    "@google-ai/generativelanguage": "^3.5.0",
     "@upstash/redis": "^1.37.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
-    "express-rate-limit": "^8.4.1",
     "firebase-admin": "^13.8.0",
-    "google-auth-library": "^10.5.0",
     "jsonwebtoken": "^9.0.2",
     "multer": "^2.1.1",
-    "node-fetch": "^3.3.2",
-    "rate-limit-redis": "^4.3.1",
-    "redis": "^5.12.1",
     "resend": "^6.9.1",
-    "socket.io": "^4.8.3",
-    "socket.io-client": "^4.8.3"
+    "swagger-ui-express": "^5.0.1"
   },
   "overrides": {
     "uuid": "^14.0.0",
