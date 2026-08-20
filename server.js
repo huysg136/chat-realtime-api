@@ -3,8 +3,12 @@ import express from "express";
 import swaggerUi from "swagger-ui-express";
 
 import { config } from "./src/config/index.js";
+import { firebaseReady } from "./src/config/firebase.js";
 import { swaggerDocument } from "./src/config/swagger.js";
-import { authMiddleware } from "./src/middlewares/authMiddleware.js";
+import {
+  authMiddleware,
+  getAuthDiagnostic,
+} from "./src/middlewares/authMiddleware.js";
 import {
   globalErrorHandler,
   notFoundHandler,
@@ -35,6 +39,17 @@ app.use(
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: firebaseReady ? "ok" : "degraded",
+    services: { firebase: firebaseReady ? "configured" : "not_configured" },
+    commit: process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 7) ?? null,
+    ...(process.env.NODE_ENV !== "production" && {
+      lastAuthDiagnostic: getAuthDiagnostic(),
+    }),
+  });
+});
 
 app.get("/api-docs.json", (req, res) => res.json(swaggerDocument));
 app.use(
