@@ -146,14 +146,21 @@ function renderNewUserEmail({ displayName, email, uid, username, photoURL }) {
 }
 
 export class MailService {
-  constructor() {
-    this.resend = new Resend(process.env.RESEND_API_KEY);
+  constructor(resendClient = null) {
+    this.resend = resendClient;
   }
 
-  async sendReportResultEmail(params) {
+  getResendClient() {
+    if (this.resend) return this.resend;
     if (!process.env.RESEND_API_KEY) {
       throw new AppError("Missing RESEND_API_KEY", 500);
     }
+
+    this.resend = new Resend(process.env.RESEND_API_KEY);
+    return this.resend;
+  }
+
+  async sendReportResultEmail(params) {
     const { reporterEmail, reporterName, messageText, action, adminName, reason, reportDate } = params;
 
     if (!reporterEmail) {
@@ -170,7 +177,7 @@ export class MailService {
       : renderApproveEmail({ reporterName: reporterName || "bạn", messageText: safeMessage, adminName: adminName || "Admin", reason, reportDate: safeReportDate, action: action || "delete_only" });
 
     try {
-      const data = await this.resend.emails.send({
+      const data = await this.getResendClient().emails.send({
         from: "Quik <no-reply@quik.id.vn>",
         to: [reporterEmail],
         subject,
@@ -183,14 +190,10 @@ export class MailService {
   }
 
   async sendNewUserNotification({ displayName, email, uid, username, photoURL }) {
-    if (!process.env.RESEND_API_KEY) {
-      throw new AppError("Missing RESEND_API_KEY", 500);
-    }
-
     const html = renderNewUserEmail({ displayName, email, uid, username, photoURL });
 
     try {
-      const data = await this.resend.emails.send({
+      const data = await this.getResendClient().emails.send({
         from: "Quik <no-reply@quik.id.vn>",
         to: ["thaigiahuy6912@gmail.com"],
         subject: `[Quik] Người dùng mới: ${displayName || email}`,
