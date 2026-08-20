@@ -27,7 +27,6 @@
     "swagger-ui-express": "^5.0.1"
   },
   "overrides": {
-    "uuid": "^14.0.0",
     "@tootallnate/once": "^3.0.1"
   }
 }
