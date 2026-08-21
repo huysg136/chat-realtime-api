@@ -1,49 +1,47 @@
-# ⚡ Quik Backend - API & Architecture Guide
+# Quik Backend
 
-> This repository contains the core API services, caching logic, and third-party integrations for the Quik platform.
+Quik Backend is the server-side API for the Quik real-time social platform. It provides authenticated services for social feeds, friendships, notifications, typing presence, media uploads, email delivery, AI features, and video-call integration.
 
----
+The application is built with Node.js and Express. Firebase Admin provides authentication and database access, Upstash Redis supports caching and rate limiting, Cloudflare R2 handles object storage, Resend delivers transactional email, and Swagger exposes the API specification.
 
-## 🏗️ System Architecture
+## Architecture
 
-Built on **Node.js** and **Express.js**, the backend acts as an orchestration layer between the client, the database, and various cloud services.
+The codebase follows a modular, feature-oriented architecture. Each business domain owns its routes, controllers, services, and unit tests, keeping responsibilities isolated and allowing features to evolve independently.
 
-### ⚡ Performance & Caching (Upstash Redis)
-To ensure low latency and minimize database reads:
--   **User Metadata**: Cached for quick lookup.
--   **Friend Recommendations**: Pre-computed and cached.
--   **Notification Badges**: Incremented atomically via Redis.
-
-### 🛡️ Rate Limiting
-Protects endpoints using sliding-window limits stored in Redis.
-
----
-
-## 📂 Project Structure
-
-```bash
+```text
+server.js
 src/
-├── config/           # Database & SDK initialization
-├── controllers/      # Request handlers (Posts, Friends, etc.)
-├── middlewares/      # Security, Auth, Rate limiters
-├── routes/           # Endpoint routing
-├── services/         # Third-party integrations
-└── utils/            # Caching & utility functions
+├── config/
+├── middlewares/
+├── modules/
+│   ├── ai/
+│   ├── friends/
+│   ├── mail/
+│   ├── posts/
+│   ├── stringee/
+│   ├── typing/
+│   ├── uploads/
+│   └── users/
+└── utils/
+test/
+├── config/
+├── middlewares/
+├── modules/
+└── utils/
 ```
 
----
+`server.js` is the single application entry point for local execution and Vercel deployment. Shared infrastructure lives under `config`, cross-cutting request logic belongs to `middlewares`, and reusable helpers are maintained in `utils`.
 
-## 🔗 Key API Endpoints
+## Core Capabilities
 
-### 📱 Posts (`/api/posts`)
-- `GET /feed` - Fetch customized user feed.
-- `POST /` - Create a post.
-- `POST /:postId/like` - Like/Unlike.
-
-### 👥 Friends (`/api/friends`)
-- `GET /suggestions` - Fetch AI-powered recommendations.
-- `GET /notifications/unread-count` - Atomic badge count.
-
----
-
-*For full project setup and client instructions, please see the [Main README](file:///d:/Project/Quik/chat-realtime/README.md).*
+- Firebase-based authentication and data access
+- Personalized posts, comments, likes, and feed caching
+- Friend requests, recommendations, and notifications
+- Real-time typing presence
+- Signed media uploads to Cloudflare R2
+- Stringee access-token and room management
+- AI-assisted features
+- Transactional email delivery
+- Redis-backed caching and rate limiting
+- OpenAPI documentation with Swagger
+- Isolated unit tests for backend modules
